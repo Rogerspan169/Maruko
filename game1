@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>交叉觀測 Cross-Observation（測試版）</title>
+  <style>
+    body {
+      background: #040d1a;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      overflow: hidden;
+      user-select: none;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 5px 0;
+      letter-spacing: 2px;
+      color: #8da9c4;
+    }
+    .tip {
+      font-size: 12px;
+      color: #647a91;
+      margin-bottom: 10px;
+    }
+    canvas {
+      background: #051622;
+      border: 2px solid #1a3a4b;
+      max-width: 100%;
+      height: auto;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      width: 100%;
+      max-width: 400px;
+      justify-content: center;
+    }
+    button {
+      background: #1a3a4b;
+      color: white;
+      border: 1px solid #8da9c4;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      flex: 1;
+      touch-action: manipulation;
+    }
+    button:active {
+      background: #0b2a3c;
+    }
+    .success-msg {
+      color: #00ffcc;
+      font-weight: bold;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🌌 交叉觀測：十字迷思</h1>
+  <div class="tip">調整下方南十字星，使其偽裝並對齊上方的北十字天鵝座</div>
+
+  <canvas id="observatory" width="400" height="600"></canvas>
+
+  <div class="controls">
+    <button id="btnRotL">🔄 左旋</button>
+    <button id="btnRotR">🔄 右旋</button>
+    <button id="btnScaleUp">➕ 放大</button>
+    <button id="btnScaleDown">➖ 縮小</button>
+  </div>
+
+  <div id="msg" class="success-msg"></div>
+
+<script>
+const canvas = document.getElementById("observatory");
+const ctx = canvas.getContext("2d");
+const msg = document.getElementById("msg");
+
+// ===== 遊戲狀態 =====
+let playerRotation = 0;   // 玩家旋轉角度 (弧度)
+let playerScale = 0.4;     // 玩家目前星空縮放比例
+let isSuccess = false;
+
+// 答案設定：當玩家調整到這個範圍時算過關
+const targetRotation = Math.PI / 4; // 答案：旋轉約 45 度
+const targetScale = 1.2;            // 答案：放大到 1.2 倍
+
+// ===== 星座星星相對座標 (以各自視窗中心為 0,0) =====
+// 北十字（天鵝座）：形狀較大、舒展
+const cygnusStars = [
+  {x: 0,   y: -100, r: 5, name: "天津四"}, // 鵝尾
+  {x: 0,   y: -20,  r: 3, name: "輦道增五"}, 
+  {x: 0,   y: 60,   r: 4, name: "輦道增七"}, // 鵝頭
+  {x: -80, y: -40,  r: 3, name: "天津九"},  // 左翅
+  {x: 80,  y: -40,  r: 3, name: "天津二"}   // 右翅
+];
+
+// 南十字座：形狀小而緊湊，這裡故意不按常理擺放，讓玩家去調整
+const southernCrossStars = [
+  {x: 0,   y: -50, r: 4}, // 十字架一 (頂)
+  {x: 0,   y: 50,  r: 5}, // 十字架二 (底，最亮)
+  {x: -35, y: 10,  r: 4}, // 十字架三 (左)
+  {x: 35,  y: 15,  r: 3}, // 十字架四 (右)
+  {x: 15,  y: 30,  r: 2}  // 旁邊的一顆暗星 (南十字特徵)
+];
+
+// ===== 繪製主循環 =====
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  const midY = canvas.height / 2;
+
+  // 1. 繪製上下分割線與背景
+  ctx.strokeStyle = "rgba(141, 169, 196, 0.2)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, midY);
+  ctx.lineTo(canvas.width, midY);
+  ctx.stroke();
+
+  // 視窗標籤
+  ctx.fillStyle = "#647a91";
+  ctx.font = "12px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText("北天觀測：天鵝座 (固定盤面)", 15, 25);
+  ctx.fillText("南天觀測：南十字座 (可動盤面)", 15, midY + 25);
+
+  // 2. 繪製上方：北十字 (天鵝座)
+  ctx.save();
+  ctx.translate(canvas.width / 2, midY / 2);
+  
+  // 畫星座連線
+  ctx.strokeStyle = "rgba(0, 255, 204, 0.25)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  // 縱軸
+  ctx.moveTo(cygnusStars[0].x, cygnusStars[0].y);
+  ctx.lineTo(cygnusStars[2].x, cygnusStars[2].y);
+  // 橫軸
+  ctx.moveTo(cygnusStars[3].x, cygnusStars[3].y);
+  ctx.lineTo(cygnusStars[4].x, cygnusStars[4].y);
+  ctx.stroke();
+
+  // 畫星星
+  cygnusStars.forEach(star => {
+    ctx.fillStyle = star.name === "天津四" ? "#fff" : "#8da9c4";
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "#00ffcc";
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0; // 重置發光
+  });
+  ctx.restore();
+
+
+  // 3. 繪製下方：南十字 (玩家可操控盤面)
+  ctx.save();
+  ctx.translate(canvas.width / 2, midY + (midY / 2));
+  
+  // ⭐ 應用玩家的旋轉與縮放
+  ctx.rotate(playerRotation);
+  ctx.scale(playerScale, playerScale);
+
+  // 畫南十字連線
+  ctx.strokeStyle = "rgba(255, 204, 0, 0.3)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  // 縱軸
+  ctx.moveTo(southernCrossStars[0].x, southernCrossStars[0].y);
+  ctx.lineTo(southernCrossStars[1].x, southernCrossStars[1].y);
+  // 橫軸
+  ctx.moveTo(southernCrossStars[2].x, southernCrossStars[2].y);
+  ctx.lineTo(southernCrossStars[3].x, southernCrossStars[3].y);
+  ctx.stroke();
+
+  // 畫南十字星星
+  southernCrossStars.forEach(star => {
+    ctx.fillStyle = "#ffcc00";
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = "#ffcc00";
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+  ctx.restore();
+
+  // 4. 檢查過關條件
+  checkWinCondition();
+}
+
+// ===== 檢查過關判定 =====
+function checkWinCondition() {
+  // 判定角度差與縮放差是否在容許範圍內 (考慮旋轉的週期性)
+  let angleDiff = Math.abs((playerRotation % (Math.PI * 2)) - targetRotation);
+  // 處理正負角度界線
+  if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+
+  let scaleDiff = Math.abs(playerScale - targetScale);
+
+  // 如果角度差小於 0.15 弧度且縮放差小於 0.15
+  if (angleDiff < 0.15 && scaleDiff < 0.15) {
+    if (!isSuccess) {
+      isSuccess = true;
+      msg.innerText = "🌟 觀測成功！星空產生共鳴，北十字與南十字疊合！";
+      // 成功時給予視覺反饋
+      canvas.style.borderColor = "#00ffcc";
+    }
+  } else {
+    isSuccess = false;
+    msg.innerText = "";
+    canvas.style.borderColor = "#1a3a4b";
+  }
+}
+
+// ===== 按鈕事件監聽 =====
+// 旋轉
+document.getElementById("btnRotL").addEventListener("click", () => { playerRotation -= 0.05; draw(); });
+document.getElementById("btnRotR").addEventListener("click", () => { playerRotation += 0.05; draw(); });
+// 縮放
+document.getElementById("btnScaleUp").addEventListener("click", () => { if(playerScale < 2.0) playerScale += 0.05; draw(); });
+document.getElementById("btnScaleDown").addEventListener("click", () => { if(playerScale > 0.2) playerScale -= 0.05; draw(); });
+
+// 初始化繪製
+draw();
+
+// ===== 遊戲主迴圈 (微光閃爍效果) =====
+let glowDir = 1;
+let glowValue = 0;
+function gameLoop() {
+  // 這裡可以加入星星微弱閃爍的動畫邏輯
+  // 為了效能，測試版先純靜態，點擊按鈕才重繪
+  requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>
