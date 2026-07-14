@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>雙十字：星空找碴 </title>
+  <title>星空觀測者：宇宙終極挑戰</title>
   <style>
     body {
       background: #020813;
@@ -16,18 +16,41 @@
       padding: 10px;
       min-height: 100vh;
       user-select: none;
+      overflow-x: hidden;
     }
     h1 {
       font-size: 20px;
       margin: 5px 0;
       letter-spacing: 2px;
       color: #8da9c4;
+      text-align: center;
     }
     .hud {
       font-size: 16px;
       color: #00ffcc;
       margin: 10px 0;
       font-weight: bold;
+      text-align: center;
+      min-height: 24px;
+    }
+    
+    /* 關卡容器管理 */
+    .stage-container {
+      display: none; 
+      width: 100%;
+      max-width: 900px;
+      flex-direction: column;
+      align-items: center;
+    }
+    .active-stage {
+      display: flex;
+    }
+
+    /* 畫布與外框 */
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
     }
     .game-container {
       display: flex;
@@ -35,13 +58,6 @@
       justify-content: center;
       gap: 15px;
       width: 100%;
-      max-width: 900px;
-    }
-    .canvas-wrapper {
-      position: relative;
-      flex: 1;
-      min-width: 280px;
-      max-width: 400px;
     }
     canvas {
       background: linear-gradient(to bottom, #020a17 0%, #061c33 70%, #112b47 100%);
@@ -57,357 +73,569 @@
       color: #647a91;
       margin-top: 5px;
     }
+
+    /* 通用按鈕 */
+    .btn-next {
+      background: #00ffcc;
+      color: #020813;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      margin-top: 15px;
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+      transition: all 0.2s ease;
+      display: none; 
+    }
+    .btn-next:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
+    }
   </style>
 </head>
 <body>
 
-  <h1>🌌 雙十字：星空找碴 </h1>
-  <div class="hud" id="hud">尋找異象：0 / 4</div>
+  <!-- ==================== 第一關：大家來找碴 ==================== -->
+  <div id="stage1" class="stage-container active-stage">
+    <h1>🌌 第一關：雙十字・星空找碴</h1>
+    <div class="hud" id="hud1">尋找異象：0 / 4</div>
+    <div class="game-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvasLeft" width="400" height="500"></canvas>
+        <div class="label">觀測盤 A (標準星空)</div>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="canvasRight" width="400" height="500"></canvas>
+        <div class="label">觀測盤 B (異象觀測)</div>
+      </div>
+    </div>
+    <button class="btn-next" id="btnGoToStage2">前往下一關：觀星連連看 ➔</button>
+  </div>
 
-  <div class="game-container">
+  <!-- ==================== 第二關：星空連連看 ==================== -->
+  <div id="stage2" class="stage-container">
+    <h1>🌌 第二關：夏季大三角連連看</h1>
+    <div class="hud" id="hud2">請將左側星體拖曳連線至右側正確答案</div>
     <div class="canvas-wrapper">
-      <canvas id="canvasLeft" width="400" height="500"></canvas>
-      <div class="label" id="labelLeft">觀測盤 A</div>
+      <canvas id="canvasMatch" width="400" height="480" style="background: radial-gradient(circle, #081a30 0%, #030d1a 100%);"></canvas>
     </div>
+    <button class="btn-next" id="btnGoToStage3">前往終極關卡：逃離心宿二 ➔</button>
+  </div>
+
+  <!-- ==================== 第三關：逃離心宿二 (直向迷宮) ==================== -->
+  <div id="stage3" class="stage-container">
+    <h1>🌌 終極關：星河逃生・心宿二的怒吼</h1>
+    <div class="hud" id="hud3">按住並拖曳藍色光點往上逃！避開下方逼近的紅巨星等離子！</div>
     <div class="canvas-wrapper">
-      <canvas id="canvasRight" width="400" height="500"></canvas>
-      <div class="label" id="labelRight">觀測盤 B</div>
+      <canvas id="canvasMaze" width="400" height="500" style="background: #020712;"></canvas>
     </div>
+    <button class="btn-next" id="btnRestart" style="display:none; background: #ffcc00; box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);">重新挑戰 🔄</button>
   </div>
 
 <script>
-const canvasL = document.getElementById("canvasLeft");
-const ctxL = canvasL.getContext("2d");
-const canvasR = document.getElementById("canvasRight");
-const ctxR = canvasR.getContext("2d");
-const hud = document.getElementById("hud");
-
-// ===== 遊戲狀態 =====
-let foundCount = 0;
-let gameOver = false;
-let floatingTexts = [];
-
-// ===== 1. 背景 150 顆同步微晶小星星 =====
-const backgroundStars = [];
-for (let i = 0; i < 150; i++) {
-  backgroundStars.push({
-    x: Math.random() * 400,
-    y: Math.random() * 500,
-    r: Math.random() * 1.3,
-    alpha: Math.random() * 0.6 + 0.2
-  });
-}
-
-// ===== 2. 隨機生成 3 個不重疊的非固定找碴點座標 =====
-const randY1 = Math.random() * 100 + 40; 
-const randX1 = Math.random() * 100 + (Math.random() > 0.5 ? 30 : 270); // 避開天鵝座左右
-const randX2 = Math.random() * 320 + 40;
-const randY2 = Math.random() * 60 + 260; // 中部
-
-// ===== 3. 定義所有可能的「隨機找碴事件池」 =====
-const possibleEvents = [
-  {
-    name: "望遠鏡種類不同",
-    xl: 200, yl: 450, xr: 200, yr: 450,
-    radius: 40,
-    type: "telescope"
-  },
-  {
-    name: "流星劃過天空",
-    xl: randX1, yl: randY1, xr: randX1, yr: randY1,
-    radius: 25,
-    type: "meteor"
-  },
-  {
-    name: "星色轉變異象",
-    xl: randX2, yl: randY2, xr: randX2, yr: randY2,
-    radius: 20,
-    type: "color_change"
-  },
-  {
-    name: "未知新星誕生",
-    xl: randX1 > 200 ? randX1 - 120 : randX1 + 120, yl: randY2 - 30,
-    xr: randX1 > 200 ? randX1 - 120 : randX1 + 120, yr: randY2 - 30,
-    radius: 20,
-    type: "nova"
-  }
-];
-
-// 從事件池中隨機挑選 3 個 (洗牌演算法)
-const shuffledEvents = [...possibleEvents].sort(() => Math.random() - 0.5);
-const selectedRandomEvents = shuffledEvents.slice(0, 3);
-
-// 判斷這一局是否抽中了「望遠鏡不同」的找碴點
-const hasTelescopeDiff = selectedRandomEvents.some(e => e.type === "telescope");
-
-// ===== 4. 組合最終的 4 個找碴點 =====
-const differences = [
-  {
-    id: 1,
-    name: "北十字天鵝座 vs 南十字星",
-    xl: 200, yl: 180, xr: 200, yr: 180, // 中央星座重疊判定區
-    radius: 65, found: false,
-    type: "constellation"
-  },
-  ...selectedRandomEvents.map((evt, index) => ({
-    id: index + 2,
-    name: evt.name,
-    xl: evt.xl, yl: evt.yl, xr: evt.xr, yr: evt.yr,
-    radius: evt.radius, found: false,
-    type: evt.type
-  }))
-];
-
-// 動態更新 UI 標籤，告訴玩家這一局的狀態
-document.getElementById("labelLeft").innerText = "觀測盤 A ";
-document.getElementById("labelRight").innerText = "觀測盤 B ";
-
-// ===== 繪製主邏輯 =====
-function render() {
-  ctxL.clearRect(0, 0, canvasL.width, canvasL.height);
-  ctxR.clearRect(0, 0, canvasR.width, canvasR.height);
-
-  // 繪製星空背景與地景
-  drawSkyAndLandscape(ctxL, "left");
-  drawSkyAndLandscape(ctxR, "right");
-
-  // 繪製已被找到的綠圈標記與浮動文字
-  drawFoundCircles();
-  updateAndDrawFloatingTexts();
-
-  if (foundCount === differences.length && !gameOver) {
-    gameOver = true;
-    hud.innerText = "🌟 觀測完成！你成功辨識了「南北十字星」與所有異象！";
-  }
-}
-
-// ===== 核心繪圖引擎 =====
-function drawSkyAndLandscape(ctx, side) {
-  // 1. 璀璨星空背景
-  backgroundStars.forEach(star => {
-    ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
-    ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2); ctx.fill();
-  });
-
-  // 2. 渲染被選中的隨機異象
-  differences.forEach(diff => {
-    if (diff.type === "meteor") {
-      if (side === "left") {
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.7)"; ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(diff.xl - 15, diff.yl - 15); ctx.lineTo(diff.xl + 15, diff.yl + 15);
-        ctx.stroke();
-        drawStar(ctx, diff.xl + 15, diff.yl + 15, 2.5, "#fff", 6);
-      }
-    }
-    else if (diff.type === "color_change") {
-      if (side === "left") {
-        drawStar(ctx, diff.xl, diff.yl, 4, "#00ffff", 8, "#00ffff"); // 耀眼藍
-      } else {
-        drawStar(ctx, diff.xr, diff.yr, 4.5, "#ff3366", 10, "#ff3366"); // 突變紅
-      }
-    }
-    else if (diff.type === "nova") {
-      if (side === "right") {
-        drawStar(ctx, diff.xr, diff.yr, 5, "#ffffff", 12, "#ffffaa"); // 右邊多出超新星
-      }
-    }
-  });
-
-  // 3. ⭐ 核心找碴點 1：北十字天鵝座 vs 南十字星 (根據照片真實骨架排列修正)
-  ctx.save();
-  ctx.translate(200, 180); // 以 200, 180 為星座中心點
-  
-  if (side === "left") {
-    // 【左邊：真實天鵝座 (Cygnus) 骨架修正】
-    ctx.strokeStyle = "rgba(0, 255, 204, 0.25)"; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    
-    // 縱軸折線 (頭 -> 身 -> 尾)
-    ctx.moveTo(0, 65);   // 鵝頭 (輦道增七)
-    ctx.lineTo(0, -10);  // 頸中部
-    ctx.lineTo(2, -35);  // 鵝身中心 (天津一)
-    ctx.lineTo(4, -85);  // 鵝尾 (天津四)
-    
-    // 翼軸折線 (左翼末端 -> 左翼 -> 中心 -> 右翼 -> 右翼末端)
-    ctx.moveTo(-90, -10); // 左翼末端 (天津九) - 高度比中心點高，呈現翅膀向上折的折線形狀
-    ctx.lineTo(-45, -28); // 左翼關節
-    ctx.lineTo(2, -35);   // 鵝身中心
-    ctx.lineTo(48, -26);  // 右翼關節
-    ctx.lineTo(92, -8);   // 右翼末端 (天津二)
-    ctx.stroke();
-
-    // 繪製真實大小比例的星點
-    drawStar(ctx, 4, -85, 6, "#ffffff", 14, "#00ffcc"); // 天津四 (主星鵝尾，最亮)
-    drawStar(ctx, 2, -35, 3.5, "#8da9c4");               // 天津一 (身心)
-    drawStar(ctx, 0, -10, 3, "#8da9c4");
-    drawStar(ctx, 0, 65, 3.5, "#8da9c4");                // 輦道增七 (頭部)
-    
-    drawStar(ctx, -45, -28, 3.5, "#8da9c4");
-    drawStar(ctx, -90, -10, 3, "#8da9c4");               // 左翼端
-    drawStar(ctx, 48, -26, 3.5, "#8da9c4");
-    drawStar(ctx, 92, -8, 3, "#8da9c4");                 // 右翼端
-  } 
-  else {
-    // 【右邊：真實南十字座 (Crux) 骨架修正】
-    ctx.strokeStyle = "rgba(255, 204, 0, 0.3)"; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    
-    // 縱軸折線 (有些微向右偏角)
-    ctx.moveTo(3, -45);  // 十字架一 (頂部)
-    ctx.lineTo(0, 45);   // 十字架二 (底部)
-    
-    // 橫軸折線 (Delta 高度明顯高於 Beta，斜度與照片一致)
-    ctx.moveTo(-33, 15); // 十字架三 (左 Beta)
-    ctx.lineTo(31, -5);  // 十字架四 (右 Delta) - 角度偏高
-    ctx.stroke();
-
-    // 星點星等大小繪製
-    drawStar(ctx, 3, -45, 4.5, "#ffcc00", 8);         // 十字架一 (二等星)
-    drawStar(ctx, 0, 45, 6.5, "#ffffff", 15, "#ffcc00"); // 十字架二 (一等星，散發耀眼白黃光)
-    drawStar(ctx, -33, 15, 5.5, "#ffcc00", 10);       // 十字架三 (一等星，比頂部亮)
-    drawStar(ctx, 31, -5, 4, "#ffcc00", 6);           // 十字架四 (三等星)
-    
-    // 橘色特徵伴星 Epsilon Crucis (位於橫軸右下方)
-    drawStar(ctx, 10, 24, 2.5, "#ff8800"); 
-  }
-  ctx.restore();
-
-  // 4. 繪製下方的山脈與地景 (人物與望遠鏡)
-  ctx.fillStyle = "#050f1a";
-  ctx.beginPath();
-  ctx.moveTo(0, 440);
-  ctx.quadraticCurveTo(120, 420, 200, 450);
-  ctx.quadraticCurveTo(300, 470, 400, 430);
-  ctx.lineTo(400, 500); ctx.lineTo(0, 500);
-  ctx.fill();
-
-  // 繪製觀星人剪影
-  ctx.fillStyle = "#02070d";
-  ctx.beginPath(); ctx.arc(170, 445, 12, 0, Math.PI * 2); ctx.fill(); // 頭
-  ctx.beginPath();
-  ctx.moveTo(155, 500); ctx.lineTo(165, 457);
-  ctx.lineTo(175, 457); ctx.lineTo(185, 500);
-  ctx.fill(); // 身體
-
-  // 畫望遠鏡支架
-  ctx.strokeStyle = "#02070d"; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(185, 460); ctx.lineTo(200, 485); ctx.stroke();
-
-  // 5. 望遠鏡隨機判定 (如果這局「沒有」抽中望遠鏡不同，則左右維持一樣的單筒)
-  ctx.save();
-  ctx.translate(185, 455);
-  ctx.rotate(-0.6); // 朝向星空角度
-
-  if (hasTelescopeDiff) {
-    // 【抽中找碴事件：左單筒 vs 右雙筒】
-    if (side === "left") {
-      drawSingleTelescope(ctx);
-    } else {
-      drawBinocularTelescope(ctx);
-    }
-  } else {
-    // 【未抽中找碴事件：左右維持相同的單筒望遠鏡】
-    drawSingleTelescope(ctx);
-  }
-  ctx.restore();
-}
-
-// 輔助繪圖：單筒望遠鏡
-function drawSingleTelescope(ctx) {
-  ctx.fillStyle = "#0c1f33"; ctx.strokeStyle = "#02070d"; ctx.lineWidth = 1.5;
-  ctx.fillRect(-5, -25, 10, 35);
-  ctx.strokeRect(-5, -25, 10, 35);
-  ctx.fillRect(-7, -27, 14, 4);
-}
-
-// 輔助繪圖：雙筒聯動望遠鏡
-function drawBinocularTelescope(ctx) {
-  ctx.fillStyle = "#1c3552"; ctx.strokeStyle = "#02070d"; ctx.lineWidth = 1.5;
-  ctx.fillRect(-9, -20, 7, 25);
-  ctx.fillRect(2, -20, 7, 25);
-  ctx.strokeRect(-9, -20, 7, 25);
-  ctx.strokeRect(2, -20, 7, 25);
-  ctx.fillRect(-3, -12, 6, 4);
-}
-
-// 輔助：畫星
+// ============================================================================
+//                          第一關與第二關通用輔助
+// ============================================================================
 function drawStar(ctx, x, y, r, color, glow = 0, glowColor = "#fff") {
   if (glow > 0) { ctx.shadowBlur = glow; ctx.shadowColor = glowColor; }
   ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   ctx.shadowBlur = 0;
 }
 
-// 畫圈
+// ============================================================================
+//                          第一關：大家來找碴
+// ============================================================================
+const canvasL = document.getElementById("canvasLeft"); const ctxL = canvasL.getContext("2d");
+const canvasR = document.getElementById("canvasRight"); const ctxR = canvasR.getContext("2d");
+const hud1 = document.getElementById("hud1"); const btnGoToStage2 = document.getElementById("btnGoToStage2");
+
+let foundCount = 0; let gameOver1 = false; let floatingTexts1 = [];
+const backgroundStars = [];
+for (let i = 0; i < 150; i++) {
+  backgroundStars.push({ x: Math.random() * 400, y: Math.random() * 500, r: Math.random() * 1.3, alpha: Math.random() * 0.6 + 0.2 });
+}
+
+const randY1 = Math.random() * 100 + 40; 
+const randX1 = Math.random() * 100 + (Math.random() > 0.5 ? 30 : 270);
+const randX2 = Math.random() * 320 + 40; const randY2 = Math.random() * 60 + 260;
+
+const possibleEvents = [
+  { name: "望遠鏡種類不同", xl: 200, yl: 450, xr: 200, yr: 450, radius: 40, type: "telescope" },
+  { name: "流星劃過天空", xl: randX1, yl: randY1, xr: randX1, yr: randY1, radius: 25, type: "meteor" },
+  { name: "星色轉變異象", xl: randX2, yl: randY2, xr: randX2, yr: randY2, radius: 20, type: "color_change" },
+  { name: "未知新星誕生", xl: randX1 > 200 ? randX1 - 120 : randX1 + 120, yl: randY2 - 30, xr: randX1 > 200 ? randX1 - 120 : randX1 + 120, yr: randY2 - 30, radius: 20, type: "nova" }
+];
+const selectedRandomEvents = [...possibleEvents].sort(() => Math.random() - 0.5).slice(0, 3);
+const hasTelescopeDiff = selectedRandomEvents.some(e => e.type === "telescope");
+
+const differences = [
+  { id: 1, name: "北十字天鵝座 vs 南十字星", xl: 200, yl: 180, xr: 200, yr: 180, radius: 65, found: false, type: "constellation" },
+  ...selectedRandomEvents.map((evt, index) => ({ id: index + 2, name: evt.name, xl: evt.xl, yl: evt.yl, xr: evt.xr, yr: evt.yr, radius: evt.radius, found: false, type: evt.type }))
+];
+
+function renderStage1() {
+  ctxL.clearRect(0, 0, canvasL.width, canvasL.height); ctxR.clearRect(0, 0, canvasR.width, canvasR.height);
+  drawSkyAndLandscape(ctxL, "left"); drawSkyAndLandscape(ctxR, "right"); drawFoundCircles(); updateAndDrawFloatingTexts1();
+  if (foundCount === differences.length && !gameOver1) {
+    gameOver1 = true; hud1.innerText = "🌟 第一關觀測完成！你成功辨識了南北十字與異象！";
+    btnGoToStage2.style.display = "block";
+  }
+}
+
+function drawSkyAndLandscape(ctx, side) {
+  backgroundStars.forEach(star => {
+    ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`; ctx.beginPath(); ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2); ctx.fill();
+  });
+  differences.forEach(diff => {
+    if (diff.type === "meteor" && side === "left") {
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.7)"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(diff.xl - 15, diff.yl - 15); ctx.lineTo(diff.xl + 15, diff.yl + 15); ctx.stroke();
+      drawStar(ctx, diff.xl + 15, diff.yl + 15, 2.5, "#fff", 6);
+    } else if (diff.type === "color_change") {
+      if (side === "left") drawStar(ctx, diff.xl, diff.yl, 4, "#00ffff", 8, "#00ffff");
+      else drawStar(ctx, diff.xr, diff.yr, 4.5, "#ff3366", 10, "#ff3366");
+    } else if (diff.type === "nova" && side === "right") {
+      drawStar(ctx, diff.xr, diff.yr, 5, "#ffffff", 12, "#ffffaa");
+    }
+  });
+
+  ctx.save(); ctx.translate(200, 180);
+  if (side === "left") {
+    ctx.strokeStyle = "rgba(0, 255, 204, 0.25)"; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(0, 65); ctx.lineTo(0, -10); ctx.lineTo(2, -35); ctx.lineTo(4, -85);
+    ctx.moveTo(-90, -10); ctx.lineTo(-45, -28); ctx.lineTo(2, -35); ctx.lineTo(48, -26); ctx.lineTo(92, -8); ctx.stroke();
+    drawStar(ctx, 4, -85, 6, "#ffffff", 14, "#00ffcc"); drawStar(ctx, 2, -35, 3.5, "#8da9c4"); drawStar(ctx, 0, -10, 3, "#8da9c4");
+    drawStar(ctx, 0, 65, 3.5, "#8da9c4"); drawStar(ctx, -45, -28, 3.5, "#8da9c4"); drawStar(ctx, -90, -10, 3, "#8da9c4");
+    drawStar(ctx, 48, -26, 3.5, "#8da9c4"); drawStar(ctx, 92, -8, 3, "#8da9c4");
+  } else {
+    ctx.strokeStyle = "rgba(255, 204, 0, 0.3)"; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(3, -45); ctx.lineTo(0, 45); ctx.moveTo(-33, 15); ctx.lineTo(31, -5); ctx.stroke();
+    drawStar(ctx, 3, -45, 4.5, "#ffcc00", 8); drawStar(ctx, 0, 45, 6.5, "#ffffff", 15, "#ffcc00");
+    drawStar(ctx, -33, 15, 5.5, "#ffcc00", 10); drawStar(ctx, 31, -5, 4, "#ffcc00", 6); drawStar(ctx, 10, 24, 2.5, "#ff8800");
+  }
+  ctx.restore();
+
+  ctx.fillStyle = "#050f1a"; ctx.beginPath(); ctx.moveTo(0, 440); ctx.quadraticCurveTo(120, 420, 200, 450); ctx.quadraticCurveTo(300, 470, 400, 430); ctx.lineTo(400, 500); ctx.lineTo(0, 500); ctx.fill();
+  ctx.fillStyle = "#02070d"; ctx.beginPath(); ctx.arc(170, 445, 12, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(155, 500); ctx.lineTo(165, 457); ctx.lineTo(175, 457); ctx.lineTo(185, 500); ctx.fill();
+  ctx.strokeStyle = "#02070d"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(185, 460); ctx.lineTo(200, 485); ctx.stroke();
+
+  ctx.save(); ctx.translate(185, 455); ctx.rotate(-0.6);
+  if (hasTelescopeDiff && side === "right") drawBinocularTelescope(ctx); else drawSingleTelescope(ctx);
+  ctx.restore();
+}
+
+function drawSingleTelescope(ctx) {
+  ctx.fillStyle = "#0c1f33"; ctx.strokeStyle = "#02070d"; ctx.lineWidth = 1.5; ctx.fillRect(-5, -25, 10, 35); ctx.strokeRect(-5, -25, 10, 35); ctx.fillRect(-7, -27, 14, 4);
+}
+function drawBinocularTelescope(ctx) {
+  ctx.fillStyle = "#1c3552"; ctx.strokeStyle = "#02070d"; ctx.lineWidth = 1.5; ctx.fillRect(-9, -20, 7, 25); ctx.fillRect(2, -20, 7, 25); ctx.strokeRect(-9, -20, 7, 25); ctx.strokeRect(2, -20, 7, 25); ctx.fillRect(-3, -12, 6, 4);
+}
+
 function drawFoundCircles() {
   differences.forEach(diff => {
     if (diff.found) {
-      ctxL.strokeStyle = "#00ffcc"; ctxL.lineWidth = 3;
-      ctxL.beginPath(); ctxL.arc(diff.xl, diff.yl, diff.radius * 0.7, 0, Math.PI * 2); ctxL.stroke();
-      
-      ctxR.strokeStyle = "#00ffcc"; ctxR.lineWidth = 3;
-      ctxR.beginPath(); ctxR.arc(diff.xr, diff.yr, diff.radius * 0.7, 0, Math.PI * 2); ctxR.stroke();
+      ctxL.strokeStyle = "#00ffcc"; ctxL.lineWidth = 3; ctxL.beginPath(); ctxL.arc(diff.xl, diff.yl, diff.radius * 0.7, 0, Math.PI * 2); ctxL.stroke();
+      ctxR.strokeStyle = "#00ffcc"; ctxR.lineWidth = 3; ctxR.beginPath(); ctxR.arc(diff.xr, diff.yr, diff.radius * 0.7, 0, Math.PI * 2); ctxR.stroke();
     }
   });
 }
 
-// 點擊事件
-function setupClickEvents(canvas, side) {
+function setupClickEvents1(canvas, side) {
   canvas.addEventListener("click", (e) => {
-    if (gameOver) return;
-
+    if (gameOver1) return;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
-
-    let hitAnything = false;
+    const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX; const clickY = (e.clientY - rect.top) * scaleY;
+    let hit = false;
     differences.forEach(diff => {
       if (diff.found) return;
-
-      let targetX = (side === "left") ? diff.xl : diff.xr;
-      let targetY = (side === "left") ? diff.yl : diff.yr;
-
-      let dist = Math.hypot(clickX - targetX, clickY - targetY);
-
-      if (dist < diff.radius) {
-        diff.found = true;
-        foundCount++;
-        hitAnything = true;
-        hud.innerText = `尋找異象：${foundCount} / 4`;
-        addFloatingText(clickX, clickY, "FOUND!");
+      let targetX = (side === "left") ? diff.xl : diff.xr; let targetY = (side === "left") ? diff.yl : diff.yr;
+      if (Math.hypot(clickX - targetX, clickY - targetY) < diff.radius) {
+        diff.found = true; foundCount++; hit = true; hud1.innerText = `尋找異象：${foundCount} / 4`; addFloatingText1(clickX, clickY, "FOUND!");
       }
     });
-
-    if (hitAnything) render();
+    if (hit) renderStage1();
   });
 }
 
-function addFloatingText(x, y, text) {
-  floatingTexts.push({ x, y, text, life: 60, vy: -0.6 });
-}
-
-function updateAndDrawFloatingTexts() {
-  floatingTexts.forEach(ft => {
+function addFloatingText1(x, y, text) { floatingTexts1.push({ x, y, text, life: 60, vy: -0.6 }); }
+function updateAndDrawFloatingTexts1() {
+  floatingTexts1.forEach(ft => {
     ctxL.fillStyle = "#00ffcc"; ctxL.font = "bold 18px Arial"; ctxL.fillText(ft.text, ft.x - 30, ft.y);
     ctxR.fillStyle = "#00ffcc"; ctxR.font = "bold 18px Arial"; ctxR.fillText(ft.text, ft.x - 30, ft.y);
     ft.y += ft.vy; ft.life--;
   });
-  floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+  floatingTexts1 = floatingTexts1.filter(ft => ft.life > 0);
+}
+setupClickEvents1(canvasL, "left"); setupClickEvents1(canvasR, "right");
+
+// ============================================================================
+//                          第二關：星空連連看
+// ============================================================================
+const canvasM = document.getElementById("canvasMatch"); const ctxM = canvasM.getContext("2d");
+const hud2 = document.getElementById("hud2"); const btnGoToStage3 = document.getElementById("btnGoToStage3");
+
+const QA_DATABASE = [
+  { id: 1, question: "河鼓二", answer: "又名牛郎星" }, { id: 2, question: "織女星", answer: "屬於天琴座" },
+  { id: 3, question: "心宿二", answer: "直徑約為太陽700倍" }, { id: 4, question: "天津四", answer: "位於天鵝座尾巴" }
+];
+let questions = []; let answers = []; let activeLine = null; let connections = []; let selectedLeft = null;
+
+function initStage2() {
+  connections = []; activeLine = null; selectedLeft = null; btnGoToStage3.style.display = "none";
+  hud2.innerText = "請將左側星體拖曳連線至右側正確答案"; hud2.style.color = "#00ffcc";
+  const shuffledQ = [...QA_DATABASE].sort(() => Math.random() - 0.5);
+  const shuffledA = [...QA_DATABASE].sort(() => Math.random() - 0.5);
+
+  questions = shuffledQ.map((item, index) => ({ id: item.id, text: item.question, x: 40, y: 80 + index * 100, w: 120, h: 50, dotX: 160, dotY: 105 + index * 100 }));
+  answers = shuffledA.map((item, index) => ({ id: item.id, text: item.answer, x: 240, y: 80 + index * 100, w: 120, h: 50, dotX: 240, dotY: 105 + index * 100 }));
+  renderStage2();
 }
 
-setupClickEvents(canvasL, "left");
-setupClickEvents(canvasR, "right");
+function renderStage2() {
+  ctxM.clearRect(0, 0, canvasM.width, canvasM.height);
+  ctxM.fillStyle = "rgba(255,255,255,0.15)";
+  for(let i=0; i<30; i++) { ctxM.fillRect((i*17)%400, (i*23)%480, 1.5, 1.5); }
 
-function gameLoop() {
-  if (floatingTexts.length > 0) render();
-  requestAnimationFrame(gameLoop);
+  connections.forEach(conn => {
+    const q = questions.find(item => item.id === conn.qId); const a = answers.find(item => item.id === conn.aId);
+    if (q && a) drawLaserLine(q.dotX, q.dotY, a.dotX, a.dotY, "#00ffcc");
+  });
+  if (activeLine) drawLaserLine(activeLine.startX, activeLine.startY, activeLine.currentX, activeLine.currentY, "#ffcc00");
+
+  questions.forEach(q => {
+    const isCompleted = connections.some(c => c.qId === q.id); const isSelected = selectedLeft === q;
+    ctxM.fillStyle = isCompleted ? "rgba(0, 255, 204, 0.08)" : (isSelected ? "rgba(255, 204, 0, 0.1)" : "rgba(26, 58, 75, 0.4)");
+    ctxM.strokeStyle = isCompleted ? "#00ffcc" : (isSelected ? "#ffcc00" : "#1a3a4b"); ctxM.lineWidth = 2;
+    roundRect(ctxM, q.x, q.y, q.w, q.h, 8, true, true);
+    ctxM.fillStyle = isCompleted ? "#00ffcc" : (isSelected ? "#ffcc00" : "#ffffff"); ctxM.font = "bold 14px Arial"; ctxM.textAlign = "center"; ctxM.fillText(q.text, q.x + q.w/2, q.y + q.h/2 + 5);
+    ctxM.fillStyle = isCompleted ? "#00ffcc" : "#8da9c4"; ctxM.beginPath(); ctxM.arc(q.dotX, q.dotY, 5, 0, Math.PI*2); ctxM.fill();
+  });
+
+  answers.forEach(a => {
+    const isCompleted = connections.some(c => c.aId === a.id);
+    ctxM.fillStyle = isCompleted ? "rgba(0, 255, 204, 0.08)" : "rgba(26, 58, 75, 0.4)";
+    ctxM.strokeStyle = isCompleted ? "#00ffcc" : "#1a3a4b"; ctxM.lineWidth = 2;
+    roundRect(ctxM, a.x, a.y, a.w, a.h, 8, true, true);
+    ctxM.fillStyle = isCompleted ? "#00ffcc" : "#ffffff"; ctxM.font = a.text.length > 8 ? "10px Arial" : "12px Arial"; ctxM.textAlign = "center"; ctxM.fillText(a.text, a.x + a.w/2, a.y + a.h/2 + 4);
+    ctxM.fillStyle = isCompleted ? "#00ffcc" : "#8da9c4"; ctxM.beginPath(); ctxM.arc(a.dotX, a.dotY, 5, 0, Math.PI*2); ctxM.fill();
+  });
 }
 
-render();
-requestAnimationFrame(gameLoop);
+function drawLaserLine(x1, y1, x2, y2, color) {
+  ctxM.save(); ctxM.shadowBlur = 8; ctxM.shadowColor = color; ctxM.strokeStyle = color; ctxM.lineWidth = 3; ctxM.beginPath(); ctxM.moveTo(x1, y1); ctxM.lineTo(x2, y2); ctxM.stroke(); ctxM.restore();
+}
+function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+  ctx.beginPath(); ctx.moveTo(x + radius, y); ctx.lineTo(x + width - radius, y); ctx.quadraticCurveTo(x + width, y, x + width, y + radius); ctx.lineTo(x + width, y + height - radius); ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height); ctx.lineTo(x + radius, y + height); ctx.quadraticCurveTo(x, y + height, x, y + height - radius); ctx.lineTo(x, y + radius); ctx.quadraticCurveTo(x, y, x + radius, y); ctx.closePath();
+  if (fill) ctx.fill(); if (stroke) ctx.stroke();
+}
+
+function getCanvasCoords(e, canvas) {
+  const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+function onStart2(e) {
+  e.preventDefault(); const coords = getCanvasCoords(e, canvasM);
+  questions.forEach(q => {
+    if (connections.some(c => c.qId === q.id)) return;
+    if (coords.x >= q.x && coords.x <= q.x + q.w && coords.y >= q.y && coords.y <= q.y + q.h) {
+      activeLine = { startX: q.dotX, startY: q.dotY, currentX: coords.x, currentY: coords.y, fromId: q.id }; selectedLeft = q; renderStage2();
+    }
+  });
+}
+function onMove2(e) {
+  if (!activeLine) return; e.preventDefault(); const coords = getCanvasCoords(e, canvasM);
+  activeLine.currentX = coords.x; activeLine.currentY = coords.y; renderStage2();
+}
+function onEnd2(e) {
+  if (!activeLine) return; e.preventDefault(); const coords = getCanvasCoords(e, canvasM);
+  answers.forEach(a => {
+    if (coords.x >= a.x && coords.x <= a.x + a.w && coords.y >= a.y && coords.y <= a.y + a.h) {
+      if (a.id === activeLine.fromId) {
+        connections.push({ qId: activeLine.fromId, aId: a.id }); hud2.innerText = "答對了！星塵軌道成功對齊。"; hud2.style.color = "#00ffcc";
+      } else {
+        hud2.innerText = "觀測線偏差... 兩者物理性質不符。"; hud2.style.color = "#ff3366";
+      }
+    }
+  });
+  activeLine = null; selectedLeft = null; renderStage2();
+  if (connections.length === QA_DATABASE.length) {
+    hud2.innerText = "🌟 第二關觀測大成功！心宿二正在崩潰，快前往終極關卡逃生！";
+    btnGoToStage3.style.display = "block";
+  }
+}
+
+canvasM.addEventListener("mousedown", onStart2); canvasM.addEventListener("mousemove", onMove2); window.addEventListener("mouseup", onEnd2);
+canvasM.addEventListener("touchstart", onStart2, { passive: false }); canvasM.addEventListener("touchmove", onMove2, { passive: false }); window.addEventListener("touchend", onEnd2);
+
+// ============================================================================
+//                    第三關：直向卷軸迷宮 (逃離心宿二)
+// ============================================================================
+const canvasZ = document.getElementById("canvasMaze"); const ctxZ = canvasZ.getContext("2d");
+const hud3 = document.getElementById("hud3"); const btnRestart = document.getElementById("btnRestart");
+
+// 迷宮核心常數
+const COLS = 10; const ROWS = 60; // 迷宮大小 (400px x 3000px)
+const CELL_SIZE = 40;
+const MAP_HEIGHT = ROWS * CELL_SIZE; // 總高 2400 像素
+
+let mazeWalls = []; // 儲存牆壁資訊：true 為牆壁
+let player = { x: 200, y: MAP_HEIGHT - 30, radius: 8, isDragging: false };
+let lavaY = MAP_HEIGHT - 40; // 心宿二火海蔓延到的 Y 座標
+let lavaSpeed = 1.35; // 等離子火海往上跑的速度
+let gameOver3 = false;
+let gameWin3 = false;
+
+// 迷宮隨機生成演算法 (確保一定有解的路徑)
+function generateMaze() {
+  mazeWalls = Array(ROWS).fill().map(() => Array(COLS).fill(false));
+  
+  // 外圍邊界
+  for (let r = 0; r < ROWS; r++) {
+    mazeWalls[r][0] = true;
+    mazeWalls[r][COLS - 1] = true;
+  }
+  
+  // 隨機在各排撒放牆壁障礙物，但保留正中央部分路線是通暢的
+  for (let r = 1; r < ROWS - 1; r++) {
+    for (let c = 1; c < COLS - 1; c++) {
+      if (Math.random() < 0.28) {
+        // 避開起始和正中央直行，確保有路
+        if (c !== 4 && c !== 5) {
+          mazeWalls[r][c] = true;
+        }
+      }
+    }
+    // 每一排強制打穿至少 2 格相鄰的路，防止死路
+    let escapeC = Math.floor(Math.random() * (COLS - 3)) + 1;
+    mazeWalls[r][escapeC] = false;
+    mazeWalls[r][escapeC + 1] = false;
+  }
+}
+
+function initStage3() {
+  gameOver3 = false; gameWin3 = false;
+  lavaSpeed = 1.45;
+  player.x = 200; player.y = MAP_HEIGHT - 30; player.isDragging = false;
+  lavaY = MAP_HEIGHT + 150; // 火海起點在玩家下方一定距離外
+  btnRestart.style.display = "none";
+  hud3.innerText = "按住並拖曳藍色光點往上逃！避開下方逼近的紅巨星等離子！";
+  hud3.style.color = "#ffcc00";
+  generateMaze();
+  tickStage3();
+}
+
+// 物理碰撞檢測
+function resolveCollisions(oldX, oldY) {
+  const pr = player.radius;
+  
+  // 限制玩家不能出最頂端或最底端大邊界
+  if (player.x - pr < 0) player.x = pr;
+  if (player.x + pr > 400) player.x = 400 - pr;
+  if (player.y - pr < 0) player.y = pr;
+  if (player.y + pr > MAP_HEIGHT) player.y = MAP_HEIGHT - pr;
+
+  // 計算玩家涵蓋的網格位置
+  let startCol = Math.floor((player.x - pr) / CELL_SIZE);
+  let endCol = Math.floor((player.x + pr) / CELL_SIZE);
+  let startRow = Math.floor((player.y - pr) / CELL_SIZE);
+  let endRow = Math.floor((player.y + pr) / CELL_SIZE);
+
+  // 滑順碰撞算法：分別對 X 和 Y 軸進行回退，避免被牆壁「卡死」
+  let tempX = player.x;
+  player.x = oldX; // 暫時回退 X 軸
+  if (isColliding(player.x, tempX, player.y, player.y)) {
+    // 依然碰撞，則 X 軸鎖定不動
+  } else {
+    player.x = tempX; // 沒碰撞，允許 X 軸移動
+  }
+
+  let tempY = player.y;
+  player.y = oldY; // 暫時回退 Y 軸
+  if (isColliding(player.x, player.x, player.y, tempY)) {
+    // Y 軸碰撞，鎖定 Y 軸
+  } else {
+    player.y = tempY;
+  }
+}
+
+function isColliding(x1, x2, y1, y2) {
+  const pr = player.radius;
+  // 檢測玩家新位置是否與迷宮內部的任何牆壁重疊
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (mazeWalls[r][c]) {
+        let wx = c * CELL_SIZE; let wy = r * CELL_SIZE;
+        // 簡單的 AABB 盒碰撞檢測
+        if (x2 + pr > wx && x2 - pr < wx + CELL_SIZE && y2 + pr > wy && y2 - pr < wy + CELL_SIZE) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+// 拖曳控制 (極度平滑，支援手指大滑動)
+function onStart3(e) {
+  if (gameOver3 || gameWin3) return;
+  e.preventDefault();
+  const coords = getCanvasCoords(e, canvasZ);
+  
+  // 加上 Camera 視差，將屏幕點擊座標換算回迷宮大地圖座標
+  const cameraY = player.y - 300;
+  const worldY = coords.y + cameraY;
+
+  // 如果點擊距離靠近角色光點，則判定開始拖曳
+  if (Math.hypot(coords.x - player.x, worldY - player.y) < player.radius * 3.5) {
+    player.isDragging = true;
+  }
+}
+
+function onMove3(e) {
+  if (!player.isDragging || gameOver3 || gameWin3) return;
+  e.preventDefault();
+  const coords = getCanvasCoords(e, canvasZ);
+  const cameraY = player.y - 300;
+  const worldY = coords.y + cameraY;
+
+  let oldX = player.x; let oldY = player.y;
+  player.x = coords.x; player.y = worldY;
+
+  resolveCollisions(oldX, oldY);
+  renderStage3();
+}
+
+function onEnd3() { player.isDragging = false; }
+
+canvasZ.addEventListener("mousedown", onStart3); canvasZ.addEventListener("mousemove", onMove3); window.addEventListener("mouseup", onEnd3);
+canvasZ.addEventListener("touchstart", onStart3, { passive: false }); canvasZ.addEventListener("touchmove", onMove3, { passive: false }); window.addEventListener("touchend", onEnd3);
+
+// 遊戲心跳 Tick
+function tickStage3() {
+  if (gameOver3 || gameWin3) return;
+
+  // 1. 等離子火海每幀向上吞噬
+  lavaY -= lavaSpeed;
+
+  // 2. 判斷勝負條件
+  if (player.y >= lavaY - player.radius) {
+    gameOver3 = true;
+    hud3.innerText = "💥 你的太空船被心宿二超新星爆發的高溫等離子吞噬了！";
+    hud3.style.color = "#ff3366";
+    btnRestart.style.display = "block";
+  }
+  else if (player.y < 45) { // 成功到達最頂端綠色星門
+    gameWin3 = true;
+    hud3.innerText = "🌟 成功逃出！你利用星門躍遷逃離了心宿二的毁滅風暴！";
+    hud3.style.color = "#00ffcc";
+    btnRestart.style.display = "block";
+  }
+
+  renderStage3();
+  requestAnimationFrame(tickStage3);
+}
+
+// 渲染大迷宮 (帶 Camera 機制)
+function renderStage3() {
+  ctxZ.clearRect(0, 0, canvasZ.width, canvasZ.height);
+  
+  // 建立 Camera：鏡頭隨著玩家垂直移動，使玩家保持在畫面中間偏下 (300px 處)
+  const cameraY = player.y - 300;
+
+  ctxZ.save();
+  ctxZ.translate(0, -cameraY); // 整個世界逆向偏移，實現直向捲軸！
+
+  // 1. 畫背景小星星 (帶有垂直滾動視差效果)
+  backgroundStars.forEach(star => {
+    ctxZ.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+    ctxZ.beginPath(); ctx.arc(star.x, star.y + (cameraY * 0.15), star.r, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // 2. 繪製迷宮牆壁
+  ctxZ.fillStyle = "#14253d"; ctxZ.strokeStyle = "#1b3a5f"; ctxZ.lineWidth = 1;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (mazeWalls[r][c]) {
+        ctxZ.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctxZ.strokeRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+    }
+  }
+
+  // 3. 繪製頂端的終點星門 (綠色星體)
+  ctxZ.fillStyle = "rgba(0, 255, 204, 0.15)";
+  ctxZ.strokeStyle = "#00ffcc"; ctxZ.lineWidth = 3;
+  ctxZ.beginPath(); ctxZ.arc(200, 40, 25, 0, Math.PI * 2); ctxZ.fill(); ctxZ.stroke();
+  ctxZ.fillStyle = "#00ffcc"; ctxZ.font = "bold 12px Arial"; ctxZ.textAlign = "center"; ctxZ.fillText("躍遷星門 EXIT", 200, 45);
+
+  // 4. 繪製玩家量子光點 (散發幽藍色電漿光暈)
+  ctxZ.save();
+  ctxZ.shadowBlur = 12; ctxZ.shadowColor = "#00ffcc";
+  ctxZ.fillStyle = "#ffffff";
+  ctxZ.beginPath(); ctxZ.arc(player.x, player.y, player.radius, 0, Math.PI * 2); ctxZ.fill();
+  ctxZ.restore();
+
+  // 5. 繪製心宿二等離子火海 (熾熱紅巨星膨脹剪影)
+  let lavaGradient = ctxZ.createLinearGradient(0, lavaY, 0, lavaY + 500);
+  lavaGradient.addColorStop(0, "rgba(255, 51, 102, 0.85)");
+  lavaGradient.addColorStop(0.2, "rgba(255, 102, 0, 0.7)");
+  lavaGradient.addColorStop(1, "rgba(2, 7, 18, 0.9)");
+  ctxZ.fillStyle = lavaGradient;
+  ctxZ.fillRect(0, lavaY, 400, MAP_HEIGHT - lavaY + 500);
+
+  // 畫等離子火浪波紋 (波峰效果)
+  ctxZ.strokeStyle = "rgba(255, 102, 0, 0.4)"; ctxZ.lineWidth = 4;
+  ctxZ.beginPath();
+  for (let x = 0; x <= 400; x += 20) {
+    let waveOffset = Math.sin((x + Date.now() * 0.1) * 0.05) * 8;
+    if (x === 0) ctxZ.moveTo(x, lavaY + waveOffset); else ctxZ.lineTo(x, lavaY + waveOffset);
+  }
+  ctxZ.stroke();
+
+  ctxZ.restore();
+}
+
+// ============================================================================
+//                          關卡流控制與重置
+// ============================================================================
+document.getElementById("btnGoToStage2").addEventListener("click", () => {
+  document.getElementById("stage1").classList.remove("active-stage");
+  document.getElementById("stage2").classList.add("active-stage");
+  initStage2();
+});
+
+document.getElementById("btnGoToStage3").addEventListener("click", () => {
+  document.getElementById("stage2").classList.remove("active-stage");
+  document.getElementById("stage3").classList.add("active-stage");
+  initStage3();
+});
+
+document.getElementById("btnRestart").addEventListener("click", () => {
+  // 重新洗牌第一關並回到起點
+  foundCount = 0; gameOver1 = false;
+  differences.forEach(d => d.found = false);
+  hud1.innerText = "尋找異象：0 / 4";
+  btnGoToStage2.style.display = "none";
+  
+  document.getElementById("stage3").classList.remove("active-stage");
+  document.getElementById("stage1").classList.add("active-stage");
+  renderStage1();
+});
+
+// 找碴浮動文字動畫循環
+function mainGameLoop() {
+  if (floatingTexts1.length > 0) renderStage1();
+  requestAnimationFrame(mainGameLoop);
+}
+
+renderStage1();
+requestAnimationFrame(mainGameLoop);
 </script>
 </body>
 </html>
