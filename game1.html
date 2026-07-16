@@ -94,9 +94,9 @@
       box-shadow: 0 0 25px rgba(0, 255, 204, 0.8);
     }
 
-    /* ⭐ 科普知識提示彈窗樣式 ⭐ */
+    /* 科普知識提示彈窗樣式 */
     .pop-overlay {
-      display: none; /* 預設隱藏 */
+      display: none; 
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(2, 8, 19, 0.85);
@@ -167,10 +167,10 @@
         <div class="label">觀測盤 B</div>
       </div>
     </div>
-    <button class="btn-next" id="btnGoToStage2">前往下一關：恆星連連看 ➔</button>
+    <button class="btn-next" id="btnGoToStage2">通過天鵝座!前往下一站 ➔</button>
   </div>
 
-  <!-- ⭐ 科普彈窗 HTML 結構 ⭐ -->
+  <!-- 科普彈窗 HTML 結構 -->
   <div class="pop-overlay" id="popOverlay">
     <div class="pop-box">
       <div class="pop-title">🌌 天文觀測紀錄</div>
@@ -186,7 +186,7 @@
     <div class="canvas-wrapper">
       <canvas id="canvasMatch" width="400" height="480" style="background: radial-gradient(circle, #081a30 0%, #030d1a 100%);"></canvas>
     </div>
-    <button class="btn-next" id="btnGoToStage3">前往終極關卡：逃離心宿二 ➔</button>
+    <button class="btn-next" id="btnGoToStage3">通過天鷹座!前往下一站 ➔</button>
   </div>
 
   <!-- ==================== 第三關：逃離心宿二 (直向迷宮) ==================== -->
@@ -210,7 +210,7 @@ function drawStar(ctx, x, y, r, color, glow = 0, glowColor = "#fff") {
 }
 
 // ============================================================================
-//                          第一關：大家來找碴 (科普彈窗升級版)
+//                          第一關：大家來找碴
 // ============================================================================
 const canvasL = document.getElementById("canvasLeft"); const ctxL = canvasL.getContext("2d");
 const canvasR = document.getElementById("canvasRight"); const ctxR = canvasR.getContext("2d");
@@ -219,7 +219,7 @@ const popOverlay = document.getElementById("popOverlay");
 const popBtnConfirm = document.getElementById("popBtnConfirm");
 
 let foundCount = 0; let gameOver1 = false; let floatingTexts1 = [];
-let isPausedForPopup = false; // ⭐ 用來控制彈窗期間暫停點擊的鎖 ⭐
+let isPausedForPopup = false; 
 const backgroundStars = [];
 for (let i = 0; i < 150; i++) {
   backgroundStars.push({ x: Math.random() * 400, y: Math.random() * 500, r: Math.random() * 1.3, alpha: Math.random() * 0.6 + 0.2 });
@@ -231,7 +231,7 @@ const randX1 = Math.random() * 80 + (Math.random() > 0.5 ? 30 : 290);
 const randX2 = Math.random() * 320 + 40; const randY2 = Math.random() * 50 + 260;
 const randX3 = Math.random() * 120 + 140; const randY3 = Math.random() * 60 + 50;
 
-// 擴充到 7 種超豐富找碴事件池
+// 7 種超豐富找碴事件池
 const possibleEvents = [
   { name: "望遠鏡種類不同", xl: 200, yl: 450, xr: 200, yr: 450, radius: 40, type: "telescope" },
   { name: "流星劃過天空", xl: randX1, yl: randY1, xr: randX1, yr: randY1, radius: 25, type: "meteor" },
@@ -342,7 +342,7 @@ function drawFoundCircles() {
 
 function setupClickEvents1(canvas, side) {
   canvas.addEventListener("click", (e) => {
-    if (gameOver1 || isPausedForPopup) return; // ⭐ 彈窗鎖定時不允許點擊
+    if (gameOver1 || isPausedForPopup) return; 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
     const clickX = (e.clientX - rect.left) * scaleX; const clickY = (e.clientY - rect.top) * scaleY;
@@ -355,7 +355,6 @@ function setupClickEvents1(canvas, side) {
         diff.found = true; foundCount++; hit = true;
         hud1.innerText = `尋找異象：${foundCount} / 4`;
         
-        // ⭐ 核心新細節：如果點中的是核心「天鵝座 vs 南十字」，觸發彈窗，不跳 Found 漂浮字 ⭐
         if (diff.type === "constellation") {
           triggerPopup();
         } else {
@@ -367,13 +366,11 @@ function setupClickEvents1(canvas, side) {
   });
 }
 
-// ⭐ 顯示科普彈窗並鎖定遊戲 ⭐
 function triggerPopup() {
   isPausedForPopup = true;
   popOverlay.style.display = "flex";
 }
 
-// ⭐ 關閉彈窗並解鎖遊戲 ⭐
 popBtnConfirm.addEventListener("click", () => {
   popOverlay.style.display = "none";
   isPausedForPopup = false;
@@ -492,7 +489,7 @@ canvasM.addEventListener("mousedown", onStart2); canvasM.addEventListener("mouse
 canvasM.addEventListener("touchstart", onStart2, { passive: false }); canvasM.addEventListener("touchmove", onMove2, { passive: false }); window.addEventListener("touchend", onEnd2);
 
 // ============================================================================
-//                    第三關：直向卷軸迷宮 (硬核升級版)
+//                    第三關：直向卷軸迷宮 (100% 保證有解硬核版)
 // ============================================================================
 const canvasZ = document.getElementById("canvasMaze"); const ctxZ = canvasZ.getContext("2d");
 const hud3 = document.getElementById("hud3"); const btnRestart = document.getElementById("btnRestart");
@@ -515,48 +512,34 @@ let lavaSpeed = 1.85;
 let gameOver3 = false;
 let gameWin3 = false;
 
-// ⭐ 修正版：100% 保證有解的隨機迷宮生成演算法 ⭐
+// 🎯 完美修復版：100% 確保有生路之迷宮演算法
 function generateMaze() {
-  // 1. 初始化所有格子為「空地」 (false)
   mazeWalls = Array(ROWS).fill().map(() => Array(COLS).fill(false));
   
-  // 2. 建立左右外圍邊界牆
   for (let r = 0; r < ROWS; r++) {
     mazeWalls[r][0] = true;
     mazeWalls[r][COLS - 1] = true;
   }
   
-  // 3. 預先規劃一條「絕對通暢的黃金逃生路徑」
-  // 記錄每一排被選為黃金通道的直行 (Column) 索引
   let guaranteedPath = Array(ROWS).fill(0);
-  
-  // 起點在最底部的中央附近
   guaranteedPath[ROWS - 1] = 4; 
   
   for (let r = ROWS - 2; r >= 0; r--) {
     let prevC = guaranteedPath[r + 1];
-    
-    // 限制下一步的橫向位移，防止路線跳躍太大（每次最多向左或向右移 2 格）
     let minC = Math.max(1, prevC - 2);
     let maxC = Math.min(COLS - 2, prevC + 2);
-    
-    // 隨機選定這一排的黃金通道位置
     let nextC = Math.floor(Math.random() * (maxC - minC + 1)) + minC;
     guaranteedPath[r] = nextC;
   }
 
-  // 4. 開始填充牆壁，但避開這條「黃金路線」
   for (let r = 1; r < ROWS - 1; r++) {
     for (let c = 1; c < COLS - 1; c++) {
-      // 判斷這一格是不是在黃金逃生路徑上
       let isOnGuaranteedPath = false;
       
-      // 檢查是否是垂直通道
       if (c === guaranteedPath[r]) {
         isOnGuaranteedPath = true;
       }
       
-      // ⭐ 關鍵：除了垂直點，相鄰兩排之間的橫向連接通道也絕對不能放牆壁！
       let pathCurrent = guaranteedPath[r];
       let pathNext = guaranteedPath[r + 1];
       let minPathX = Math.min(pathCurrent, pathNext);
@@ -566,8 +549,6 @@ function generateMaze() {
         isOnGuaranteedPath = true;
       }
 
-      // 如果不在保證路線上，則隨機放置牆壁
-      // 因為保證有解，我們將難度機率調高至 42% 讓分支迷宮更複雜好玩！
       if (!isOnGuaranteedPath) {
         if (Math.random() < 0.42) {
           mazeWalls[r][c] = true;
@@ -576,12 +557,10 @@ function generateMaze() {
     }
   }
 
-  // 5. 確保最底部起點周圍暢通
   for (let c = 1; c < COLS - 1; c++) {
     mazeWalls[ROWS - 1][c] = false;
     mazeWalls[ROWS - 2][c] = false;
   }
-  // 確保最頂部終點出口暢通
   for (let c = 1; c < COLS - 1; c++) {
     mazeWalls[1][c] = false;
     mazeWalls[2][c] = false;
@@ -670,7 +649,12 @@ canvasZ.addEventListener("mousedown", onStart3); canvasZ.addEventListener("mouse
 canvasZ.addEventListener("touchstart", onStart3, { passive: false }); canvasZ.addEventListener("touchmove", onMove3, { passive: false }); window.addEventListener("touchend", onEnd3);
 
 function tickStage3() {
-  if (gameOver3 || gameWin3) return;
+  // ⭐ 如果通關，保持不斷調用 render 渲染終極畫面 ⭐
+  if (gameWin3) {
+    renderStage3();
+    return;
+  }
+  if (gameOver3) return;
 
   if (player.isDragging) {
     let oldX = player.x;
@@ -706,21 +690,30 @@ function tickStage3() {
     hud3.innerText = "💥 你的太空船被膨脹中的心宿二吞噬了！";
     hud3.style.color = "#ff3366";
     btnRestart.style.display = "block";
+    renderStage3();
   }
   else if (player.y < 45) { 
     gameWin3 = true;
-    hud3.innerText = "🌟 成功逃出！你利用星門躍遷逃離了心宿二的毁滅風暴！";
-    hud3.style.color = "#00ffcc";
+    hud3.innerText = ""; // 隱藏頂部提示
+    btnRestart.innerText = "重啟宇宙星路 🔄";
     btnRestart.style.display = "block";
+    renderStage3();
+  } else {
+    renderStage3();
+    requestAnimationFrame(tickStage3);
   }
-
-  renderStage3();
-  requestAnimationFrame(tickStage3);
 }
 
+// 渲染大迷宮 + ⭐ 終極通關畫面動態繪製 ⭐
 function renderStage3() {
   ctxZ.clearRect(0, 0, canvasZ.width, canvasZ.height);
   
+  // 🌟【判斷：如果是通關狀態，繪製專屬的「開往夢幻南十字星列車」】🌟
+  if (gameWin3) {
+    drawEndingScene(ctxZ);
+    return;
+  }
+
   const cameraY = player.y - 300;
 
   ctxZ.save();
@@ -770,6 +763,167 @@ function renderStage3() {
   ctxZ.stroke();
 
   ctxZ.restore();
+}
+
+// ⭐ 動態繪製：列車駛向夢幻南十字星畫面 ⭐
+function drawEndingScene(ctx) {
+  const time = Date.now() * 0.001;
+
+  // 1. 夢幻星空漸層
+  let skyGlow = ctx.createLinearGradient(0, 0, 0, 500);
+  skyGlow.addColorStop(0, "#010714");
+  skyGlow.addColorStop(0.4, "#041530");
+  skyGlow.addColorStop(0.8, "#0c3359");
+  skyGlow.addColorStop(1, "#185a70");
+  ctx.fillStyle = skyGlow;
+  ctx.fillRect(0, 0, 400, 500);
+
+  // 繪製微風極光感 (扭曲流光)
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.strokeStyle = "#3be8b0";
+  ctx.lineWidth = 30;
+  ctx.beginPath();
+  for (let x = -50; x <= 450; x += 10) {
+    let y = 180 + Math.sin(x * 0.01 + time) * 40 + Math.cos(x * 0.005) * 20;
+    if (x === -50) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // 2. 繁星點綴 (呼吸效果)
+  ctx.save();
+  for (let i = 0; i < 60; i++) {
+    let seedX = (i * 233) % 400;
+    let seedY = (i * 127) % 350;
+    let starAlpha = 0.3 + Math.sin(time + i) * 0.4;
+    ctx.fillStyle = `rgba(255, 255, 255, ${starAlpha})`;
+    ctx.beginPath();
+    ctx.arc(seedX, seedY, 1 + (i % 2), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 3. 繪製發光的巨大南十字星 (核心夢幻地標)
+  ctx.save();
+  const crossX = 240;
+  const crossY = 220;
+  
+  // 外圍強烈發光圈
+  let starGlow = ctx.createRadialGradient(crossX, crossY, 2, crossX, crossY, 70);
+  starGlow.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+  starGlow.addColorStop(0.2, "rgba(0, 255, 204, 0.4)");
+  starGlow.addColorStop(0.6, "rgba(12, 51, 89, 0.2)");
+  starGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = starGlow;
+  ctx.beginPath(); ctx.arc(crossX, crossY, 75, 0, Math.PI * 2); ctx.fill();
+
+  // 繪製十字主幹
+  ctx.strokeStyle = "rgba(0, 255, 204, 0.35)";
+  ctx.lineWidth = 8;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(crossX, crossY - 50); ctx.lineTo(crossX, crossY + 50); // 縱軸
+  ctx.moveTo(crossX - 35, crossY - 10); ctx.lineTo(crossX + 35, crossY - 10); // 橫軸
+  ctx.stroke();
+
+  // 繪製南十字座四大耀眼星點
+  drawStar(ctx, crossX, crossY - 50, 6, "#ffffff", 12, "#ffcc00");      // 十字架一 (頂)
+  drawStar(ctx, crossX, crossY + 50, 8, "#ffffff", 18, "#00ffcc");      // 十字架二 (底，最亮)
+  drawStar(ctx, crossX - 35, crossY - 10, 7, "#ffffff", 15, "#ffcc00");  // 十字架三 (左)
+  drawStar(ctx, crossX + 35, crossY - 10, 5, "#ffffff", 10, "#ffcc00");  // 十字架四 (右)
+  drawStar(ctx, crossX + 12, crossY + 22, 3, "#ffcc00", 5, "#ff8800");   // 伴星 Epsilon
+  ctx.restore();
+
+  // 4. 繪製彩虹發光地平線與山陵
+  ctx.save();
+  // 遠山
+  ctx.fillStyle = "#091c33";
+  ctx.beginPath();
+  ctx.moveTo(-10, 430);
+  ctx.quadraticCurveTo(100, 390, 220, 420);
+  ctx.quadraticCurveTo(320, 440, 410, 380);
+  ctx.lineTo(410, 510); ctx.lineTo(-10, 510);
+  ctx.fill();
+
+  // 近山丘 (彩色粉紫邊)
+  let hillGrad = ctx.createLinearGradient(0, 400, 0, 500);
+  hillGrad.addColorStop(0, "#2c1c3d");
+  hillGrad.addColorStop(1, "#0a0514");
+  ctx.fillStyle = hillGrad;
+  ctx.beginPath();
+  ctx.moveTo(-10, 460);
+  ctx.quadraticCurveTo(150, 400, 300, 450);
+  ctx.quadraticCurveTo(350, 470, 410, 440);
+  ctx.lineTo(410, 510); ctx.lineTo(-10, 510);
+  ctx.fill();
+
+  // 邊緣流螢 (山脈上的光芒)
+  ctx.strokeStyle = "rgba(180, 100, 255, 0.4)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-10, 460);
+  ctx.quadraticCurveTo(150, 400, 300, 450);
+  ctx.quadraticCurveTo(350, 470, 410, 440);
+  ctx.stroke();
+  ctx.restore();
+
+  // 5. 繪製鐵道與奔馳的復古蒸汽火車
+  ctx.save();
+  // 鐵軌線
+  ctx.strokeStyle = "rgba(255,255,255,0.2)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-10, 485);
+  ctx.quadraticCurveTo(120, 445, 250, 470);
+  ctx.stroke();
+
+  // 繪製藍色列車車身 (順著曲線前進)
+  const trainX = 90;
+  const trainY = 460;
+  ctx.fillStyle = "#0c335c"; // 經典藍
+  ctx.strokeStyle = "#ffcc00"; // 黃色框線
+  ctx.lineWidth = 1.5;
+  // 車頭
+  roundRect(ctx, trainX, trainY - 12, 35, 18, 4, true, true);
+  // 車窗與車輪
+  ctx.fillStyle = "#ffcc00";
+  ctx.fillRect(trainX + 18, trainY - 8, 8, 5); // 駕駛窗
+  ctx.fillStyle = "#111";
+  ctx.beginPath(); ctx.arc(trainX + 8, trainY + 8, 4, 0, Math.PI*2); ctx.arc(trainX + 26, trainY + 8, 4, 0, Math.PI*2); ctx.fill();
+
+  // 車廂
+  ctx.fillStyle = "#134275";
+  roundRect(ctx, trainX - 42, trainY - 8, 36, 14, 3, true, true);
+  ctx.fillStyle = "#ffd54f"; // 黃色發光車窗
+  ctx.fillRect(trainX - 36, trainY - 4, 6, 4);
+  ctx.fillRect(trainX - 26, trainY - 4, 6, 4);
+  ctx.fillRect(trainX - 16, trainY - 4, 6, 4);
+  
+  // 連接軸
+  ctx.strokeStyle = "#8da9c4"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(trainX - 6, trainY + 2); ctx.lineTo(trainX, trainY + 2); ctx.stroke();
+
+  // 6. 冉冉升起的蒸汽火車煙霧 (動態漂移)
+  for (let j = 0; j < 3; j++) {
+    let smokeOffset = (time * 25 + j * 30) % 90;
+    let smokeAlpha = 0.5 - (smokeOffset / 90);
+    ctx.fillStyle = `rgba(230, 235, 245, ${smokeAlpha})`;
+    ctx.beginPath();
+    ctx.arc(trainX + 30 - smokeOffset * 0.6, trainY - 18 - smokeOffset * 0.4, 8 + smokeOffset * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 7. ⭐ 繪製發光大標題文字 ⭐
+  ctx.save();
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = "#00ffcc";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 22px Arial, Microsoft JhengHei";
+  ctx.textAlign = "center";
+  ctx.fillText("旅程終了！南十字星就在眼前！", 200, 75);
+  ctx.restore();
 }
 
 // ============================================================================
