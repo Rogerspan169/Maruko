@@ -191,7 +191,7 @@
 
   <!-- ==================== 第三關：逃離心宿二 (直向迷宮) ==================== -->
   <div id="stage3" class="stage-container">
-    <h1>🌌 終極關：星河逃生・心宿二的怒吼(天蠍座)</h1>
+    <h1 id="mazeTitle">🌌 終極關：星河逃生・心宿二的怒吼</h1>
     <div class="hud" id="hud3">按住並拖曳藍色光點往上逃！避開下方逼近的紅巨星等離子！</div>
     <div class="canvas-wrapper">
       <canvas id="canvasMaze" width="400" height="500" style="background: #020712;"></canvas>
@@ -331,6 +331,7 @@ function drawBinocularTelescope(ctx) {
   ctx.fillStyle = "#1c3552"; ctx.strokeStyle = "#02070d"; ctx.lineWidth = 1.5; ctx.fillRect(-9, -20, 7, 25); ctx.fillRect(2, -20, 7, 25); ctx.strokeRect(-9, -20, 7, 25); ctx.strokeRect(2, -20, 7, 25); ctx.fillRect(-3, -12, 6, 4);
 }
 
+// 畫圈
 function drawFoundCircles() {
   differences.forEach(diff => {
     if (diff.found) {
@@ -489,17 +490,17 @@ canvasM.addEventListener("mousedown", onStart2); canvasM.addEventListener("mouse
 canvasM.addEventListener("touchstart", onStart2, { passive: false }); canvasM.addEventListener("touchmove", onMove2, { passive: false }); window.addEventListener("touchend", onEnd2);
 
 // ============================================================================
-//                    第三關：直向卷軸迷宮 (100% 保證有解硬核版)
+//                    第三關：直向卷軸迷宮 (保證連通極限版)
 // ============================================================================
 const canvasZ = document.getElementById("canvasMaze"); const ctxZ = canvasZ.getContext("2d");
 const hud3 = document.getElementById("hud3"); const btnRestart = document.getElementById("btnRestart");
+const mazeTitle = document.getElementById("mazeTitle");
 
 const COLS = 10; const ROWS = 60; 
 const CELL_SIZE = 40;
 const MAP_HEIGHT = ROWS * CELL_SIZE; 
 
 let mazeWalls = []; 
-
 let player = { 
   x: 200, y: MAP_HEIGHT - 30, 
   targetX: 200, targetY: MAP_HEIGHT - 30, 
@@ -512,7 +513,6 @@ let lavaSpeed = 1.85;
 let gameOver3 = false;
 let gameWin3 = false;
 
-// 🎯 完美修復版：100% 確保有生路之迷宮演算法
 function generateMaze() {
   mazeWalls = Array(ROWS).fill().map(() => Array(COLS).fill(false));
   
@@ -569,6 +569,9 @@ function generateMaze() {
 
 function initStage3() {
   gameOver3 = false; gameWin3 = false;
+  // 重置時復原標題文字
+  mazeTitle.innerText = "🌌 終極關：星河逃生・心宿二的怒吼";
+  mazeTitle.style.display = "block";
   player.x = 200; player.y = MAP_HEIGHT - 30;
   player.targetX = 200; player.targetY = MAP_HEIGHT - 30;
   player.isDragging = false;
@@ -582,25 +585,16 @@ function initStage3() {
 
 function resolveCollisions(oldX, oldY) {
   const pr = player.radius;
-  
   if (player.x - pr < 0) player.x = pr;
   if (player.x + pr > 400) player.x = 400 - pr;
   if (player.y - pr < 0) player.y = pr;
   if (player.y + pr > MAP_HEIGHT) player.y = MAP_HEIGHT - pr;
 
-  let tempX = player.x;
-  player.x = oldX; 
-  if (isColliding(player.x, tempX, player.y, player.y)) {
-  } else {
-    player.x = tempX; 
-  }
+  let tempX = player.x; player.x = oldX; 
+  if (!isColliding(player.x, tempX, player.y, player.y)) player.x = tempX; 
 
-  let tempY = player.y;
-  player.y = oldY; 
-  if (isColliding(player.x, player.x, player.y, tempY)) {
-  } else {
-    player.y = tempY;
-  }
+  let tempY = player.y; player.y = oldY; 
+  if (!isColliding(player.x, player.x, player.y, tempY)) player.y = tempY;
 }
 
 function isColliding(x1, x2, y1, y2) {
@@ -609,9 +603,7 @@ function isColliding(x1, x2, y1, y2) {
     for (let c = 0; c < COLS; c++) {
       if (mazeWalls[r][c]) {
         let wx = c * CELL_SIZE; let wy = r * CELL_SIZE;
-        if (x2 + pr > wx && x2 - pr < wx + CELL_SIZE && y2 + pr > wy && y2 - pr < wy + CELL_SIZE) {
-          return true;
-        }
+        if (x2 + pr > wx && x2 - pr < wx + CELL_SIZE && y2 + pr > wy && y2 - pr < wy + CELL_SIZE) return true;
       }
     }
   }
@@ -624,11 +616,8 @@ function onStart3(e) {
   const coords = getCanvasCoords(e, canvasZ);
   const cameraY = player.y - 300;
   const worldY = coords.y + cameraY;
-
   if (Math.hypot(coords.x - player.x, worldY - player.y) < player.radius * 4) {
-    player.isDragging = true;
-    player.targetX = coords.x;
-    player.targetY = worldY;
+    player.isDragging = true; player.targetX = coords.x; player.targetY = worldY;
   }
 }
 
@@ -636,49 +625,33 @@ function onMove3(e) {
   if (!player.isDragging || gameOver3 || gameWin3) return;
   e.preventDefault();
   const coords = getCanvasCoords(e, canvasZ);
-  const cameraY = player.y - 300;
-  const worldY = coords.y + cameraY;
-
-  player.targetX = coords.x;
-  player.targetY = worldY;
+  player.targetX = coords.x; player.targetY = coords.y + (player.y - 300);
 }
-
 function onEnd3() { player.isDragging = false; }
 
 canvasZ.addEventListener("mousedown", onStart3); canvasZ.addEventListener("mousemove", onMove3); window.addEventListener("mouseup", onEnd3);
 canvasZ.addEventListener("touchstart", onStart3, { passive: false }); canvasZ.addEventListener("touchmove", onMove3, { passive: false }); window.addEventListener("touchend", onEnd3);
 
+// 遊戲心跳
 function tickStage3() {
-  // ⭐ 如果通關，保持不斷調用 render 渲染終極畫面 ⭐
+  // 🌟 通關後依然不中斷，維持不斷重繪以達到動態列車效果 🌟
   if (gameWin3) {
     renderStage3();
+    requestAnimationFrame(tickStage3);
     return;
   }
   if (gameOver3) return;
 
   if (player.isDragging) {
-    let oldX = player.x;
-    let oldY = player.y;
-
-    let dx = player.targetX - player.x;
-    let dy = player.targetY - player.y;
+    let oldX = player.x; let oldY = player.y;
+    let dx = player.targetX - player.x; let dy = player.targetY - player.y;
     let distance = Math.hypot(dx, dy);
 
     if (distance > 0.1) {
-      let ease = 0.12; 
-      let stepX = dx * ease;
-      let stepY = dy * ease;
-
-      const maxSpeed = 7.5; 
-      let stepDist = Math.hypot(stepX, stepY);
-      if (stepDist > maxSpeed) {
-        stepX = (stepX / stepDist) * maxSpeed;
-        stepY = (stepY / stepDist) * maxSpeed;
-      }
-
-      player.x += stepX;
-      player.y += stepY;
-
+      let ease = 0.12; let stepX = dx * ease; let stepY = dy * ease;
+      const maxSpeed = 7.5; let stepDist = Math.hypot(stepX, stepY);
+      if (stepDist > maxSpeed) { stepX = (stepX / stepDist) * maxSpeed; stepY = (stepY / stepDist) * maxSpeed; }
+      player.x += stepX; player.y += stepY;
       resolveCollisions(oldX, oldY);
     }
   }
@@ -687,243 +660,136 @@ function tickStage3() {
 
   if (player.y >= lavaY - player.radius) {
     gameOver3 = true;
-    hud3.innerText = "💥 你的太空船被膨脹中的心宿二吞噬了！";
-    hud3.style.color = "#ff3366";
+    hud3.innerText = "💥 你的太空船被膨脹中的心宿二吞噬了！"; hud3.style.color = "#ff3366";
     btnRestart.style.display = "block";
     renderStage3();
   }
   else if (player.y < 45) { 
     gameWin3 = true;
-    hud3.innerText = ""; // 隱藏頂部提示
-    btnRestart.innerText = "重啟宇宙星路 🔄";
-    btnRestart.style.display = "block";
+    // ⭐ 新增：通關一瞬間徹底刪除/隱藏最上方的標題文字 ⭐
+    mazeTitle.style.display = "none";
+    hud3.innerText = ""; 
+    btnRestart.innerText = "重啟宇宙星路 🔄"; btnRestart.style.display = "block";
     renderStage3();
+    requestAnimationFrame(tickStage3); // 重新將動態環喚醒
   } else {
     renderStage3();
     requestAnimationFrame(tickStage3);
   }
 }
 
-// 渲染大迷宮 + ⭐ 終極通關畫面動態繪製 ⭐
 function renderStage3() {
   ctxZ.clearRect(0, 0, canvasZ.width, canvasZ.height);
-  
-  // 🌟【判斷：如果是通關狀態，繪製專屬的「開往夢幻南十字星列車」】🌟
-  if (gameWin3) {
-    drawEndingScene(ctxZ);
-    return;
-  }
+  if (gameWin3) { drawEndingScene(ctxZ); return; }
 
   const cameraY = player.y - 300;
-
-  ctxZ.save();
-  ctxZ.translate(0, -cameraY); 
+  ctxZ.save(); ctxZ.translate(0, -cameraY); 
 
   backgroundStars.forEach(star => {
-    ctxZ.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
-    ctxZ.beginPath(); 
-    ctxZ.arc(star.x, star.y + (cameraY * 0.15), star.r, 0, Math.PI * 2); 
-    ctxZ.fill();
+    ctxZ.fillStyle = `rgba(255, 255, 255, ${star.alpha})`; ctxZ.beginPath(); ctxZ.arc(star.x, star.y + (cameraY * 0.15), star.r, 0, Math.PI * 2); ctxZ.fill();
   });
 
   ctxZ.fillStyle = "#14253d"; ctxZ.strokeStyle = "#1b3a5f"; ctxZ.lineWidth = 1;
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      if (mazeWalls[r][c]) {
-        ctxZ.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-        ctxZ.strokeRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-      }
+      if (mazeWalls[r][c]) { ctxZ.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE); ctxZ.strokeRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE); }
     }
   }
 
-  ctxZ.fillStyle = "rgba(0, 255, 204, 0.15)";
-  ctxZ.strokeStyle = "#00ffcc"; ctxZ.lineWidth = 3;
+  ctxZ.fillStyle = "rgba(0, 255, 204, 0.15)"; ctxZ.strokeStyle = "#00ffcc"; ctxZ.lineWidth = 3;
   ctxZ.beginPath(); ctxZ.arc(200, 40, 25, 0, Math.PI * 2); ctxZ.fill(); ctxZ.stroke();
   ctxZ.fillStyle = "#00ffcc"; ctxZ.font = "bold 12px Arial"; ctxZ.textAlign = "center"; ctxZ.fillText("躍遷星門 EXIT", 200, 45);
 
-  ctxZ.save();
-  ctxZ.shadowBlur = 12; ctxZ.shadowColor = "#00ffcc";
-  ctxZ.fillStyle = "#ffffff";
-  ctxZ.beginPath(); ctxZ.arc(player.x, player.y, player.radius, 0, Math.PI * 2); ctxZ.fill();
-  ctxZ.restore();
+  ctxZ.save(); ctxZ.shadowBlur = 12; ctxZ.shadowColor = "#00ffcc"; ctxZ.fillStyle = "#ffffff";
+  ctxZ.beginPath(); ctxZ.arc(player.x, player.y, player.radius, 0, Math.PI * 2); ctxZ.fill(); ctxZ.restore();
 
   let lavaGradient = ctxZ.createLinearGradient(0, lavaY, 0, lavaY + 500);
-  lavaGradient.addColorStop(0, "rgba(255, 51, 102, 0.85)");
-  lavaGradient.addColorStop(0.2, "rgba(255, 102, 0, 0.7)");
-  lavaGradient.addColorStop(1, "rgba(2, 7, 18, 0.9)");
-  ctxZ.fillStyle = lavaGradient;
-  ctxZ.fillRect(0, lavaY, 400, MAP_HEIGHT - lavaY + 500);
+  lavaGradient.addColorStop(0, "rgba(255, 51, 102, 0.85)"); lavaGradient.addColorStop(0.2, "rgba(255, 102, 0, 0.7)"); lavaGradient.addColorStop(1, "rgba(2, 7, 18, 0.9)");
+  ctxZ.fillStyle = lavaGradient; ctxZ.fillRect(0, lavaY, 400, MAP_HEIGHT - lavaY + 500);
 
-  ctxZ.strokeStyle = "rgba(255, 102, 0, 0.4)"; ctxZ.lineWidth = 4;
-  ctxZ.beginPath();
+  ctxZ.strokeStyle = "rgba(255, 102, 0, 0.4)"; ctxZ.lineWidth = 4; ctxZ.beginPath();
   for (let x = 0; x <= 400; x += 20) {
     let waveOffset = Math.sin((x + Date.now() * 0.1) * 0.05) * 8;
     if (x === 0) ctxZ.moveTo(x, lavaY + waveOffset); else ctxZ.lineTo(x, lavaY + waveOffset);
   }
-  ctxZ.stroke();
-
-  ctxZ.restore();
+  ctxZ.stroke(); ctxZ.restore();
 }
 
-// ⭐ 動態繪製：列車駛向夢幻南十字星畫面 ⭐
+// 繪製：開往夢幻南十字星列車 (完美修復動態流光版本)
 function drawEndingScene(ctx) {
-  const time = Date.now() * 0.001;
+  const time = Date.now() * 0.001; // 動態時間因子
 
   // 1. 夢幻星空漸層
   let skyGlow = ctx.createLinearGradient(0, 0, 0, 500);
-  skyGlow.addColorStop(0, "#010714");
-  skyGlow.addColorStop(0.4, "#041530");
-  skyGlow.addColorStop(0.8, "#0c3359");
-  skyGlow.addColorStop(1, "#185a70");
-  ctx.fillStyle = skyGlow;
-  ctx.fillRect(0, 0, 400, 500);
+  skyGlow.addColorStop(0, "#010714"); skyGlow.addColorStop(0.4, "#041530"); skyGlow.addColorStop(0.8, "#0c3359"); skyGlow.addColorStop(1, "#185a70");
+  ctx.fillStyle = skyGlow; ctx.fillRect(0, 0, 400, 500);
 
-  // 繪製微風極光感 (扭曲流光)
-  ctx.save();
-  ctx.globalAlpha = 0.15;
-  ctx.strokeStyle = "#3be8b0";
-  ctx.lineWidth = 30;
-  ctx.beginPath();
+  // 波動極光 (動態！)
+  ctx.save(); ctx.globalAlpha = 0.15; ctx.strokeStyle = "#3be8b0"; ctx.lineWidth = 30; ctx.beginPath();
   for (let x = -50; x <= 450; x += 10) {
-    let y = 180 + Math.sin(x * 0.01 + time) * 40 + Math.cos(x * 0.005) * 20;
+    let y = 180 + Math.sin(x * 0.01 + time * 2) * 30 + Math.cos(x * 0.005) * 15; // 火車煙霧與流光加倍躍動
     if (x === -50) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
-  ctx.stroke();
-  ctx.restore();
+  ctx.stroke(); ctx.restore();
 
-  // 2. 繁星點綴 (呼吸效果)
+  // 2. 繁星點綴 (呼吸效果動態！)
   ctx.save();
   for (let i = 0; i < 60; i++) {
-    let seedX = (i * 233) % 400;
-    let seedY = (i * 127) % 350;
-    let starAlpha = 0.3 + Math.sin(time + i) * 0.4;
-    ctx.fillStyle = `rgba(255, 255, 255, ${starAlpha})`;
+    let seedX = (i * 233) % 400; let seedY = (i * 127) % 350;
+    let starAlpha = 0.2 + Math.sin(time * 3 + i) * 0.5; // 加快星星閃爍頻率
+    ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, starAlpha)})`;
+    ctx.beginPath(); ctx.arc(seedX, seedY, 1 + (i % 2), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  // 3. 巨大發光南十字星
+  ctx.save(); const crossX = 240; const crossY = 220;
+  let starGlow = ctx.createRadialGradient(crossX, crossY, 2, crossX, crossY, 65 + Math.sin(time*5)*5); // 核心十字自發光微弱收縮
+  starGlow.addColorStop(0, "rgba(255, 255, 255, 0.95)"); starGlow.addColorStop(0.2, "rgba(0, 255, 204, 0.4)"); starGlow.addColorStop(0.6, "rgba(12, 51, 89, 0.15)"); starGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = starGlow; ctx.beginPath(); ctx.arc(crossX, crossY, 75, 0, Math.PI * 2); ctx.fill();
+
+  ctx.strokeStyle = "rgba(0, 255, 204, 0.4)"; ctx.lineWidth = 8; ctx.lineCap = "round"; ctx.beginPath();
+  ctx.moveTo(crossX, crossY - 50); ctx.lineTo(crossX, crossY + 50); ctx.moveTo(crossX - 35, crossY - 10); ctx.lineTo(crossX + 35, crossY - 10); ctx.stroke();
+
+  drawStar(ctx, crossX, crossY - 50, 6, "#ffffff", 12, "#ffcc00");      
+  drawStar(ctx, crossX, crossY + 50, 8, "#ffffff", 18, "#00ffcc");      
+  drawStar(ctx, crossX - 35, crossY - 10, 7, "#ffffff", 15, "#ffcc00");  
+  drawStar(ctx, crossX + 35, crossY - 10, 5, "#ffffff", 10, "#ffcc00");  
+  drawStar(ctx, crossX + 12, crossY + 22, 3, "#ffcc00", 5, "#ff8800");   
+  ctx.restore();
+
+  // 4. 地平線山陵
+  ctx.save(); ctx.fillStyle = "#091c33"; ctx.beginPath(); ctx.moveTo(-10, 430); ctx.quadraticCurveTo(100, 390, 220, 420); ctx.quadraticCurveTo(320, 440, 410, 380); ctx.lineTo(410, 510); ctx.lineTo(-10, 510); ctx.fill();
+  let hillGrad = ctx.createLinearGradient(0, 400, 0, 500); hillGrad.addColorStop(0, "#2c1c3d"); hillGrad.addColorStop(1, "#0a0514");
+  ctx.fillStyle = hillGrad; ctx.beginPath(); ctx.moveTo(-10, 460); ctx.quadraticCurveTo(150, 400, 300, 450); ctx.quadraticCurveTo(350, 470, 410, 440); ctx.lineTo(410, 510); ctx.lineTo(-10, 510); ctx.fill();
+  ctx.strokeStyle = "rgba(180, 100, 255, 0.4)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-10, 460); ctx.quadraticCurveTo(150, 400, 300, 450); ctx.quadraticCurveTo(350, 470, 410, 440); ctx.stroke(); ctx.restore();
+
+  // 5. 蒸汽火車
+  ctx.save(); ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-10, 485); ctx.quadraticCurveTo(120, 445, 250, 470); ctx.stroke();
+  const trainX = 90; const trainY = 460;
+  ctx.fillStyle = "#0c335c"; ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 1.5; roundRect(ctx, trainX, trainY - 12, 35, 18, 4, true, true);
+  ctx.fillStyle = "#ffcc00"; ctx.fillRect(trainX + 18, trainY - 8, 8, 5);
+  ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(trainX + 8, trainY + 8, 4, 0, Math.PI*2); ctx.arc(trainX + 26, trainY + 8, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#134275"; roundRect(ctx, trainX - 42, trainY - 8, 36, 14, 3, true, true);
+  ctx.fillStyle = "#ffd54f"; ctx.fillRect(trainX - 36, trainY - 4, 6, 4); ctx.fillRect(trainX - 26, trainY - 4, 6, 4); ctx.fillRect(trainX - 16, trainY - 4, 6, 4);
+  ctx.strokeStyle = "#8da9c4"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(trainX - 6, trainY + 2); ctx.lineTo(trainX, trainY + 2); ctx.stroke();
+
+  // 6. 蒸汽煙霧 (完美復活動態流沙飄移！)
+  for (let j = 0; j < 4; j++) {
+    let smokeOffset = (time * 40 + j * 25) % 100; // 調整煙霧生成速度與密度
+    let smokeAlpha = 0.55 - (smokeOffset / 100);
+    let sizeRadius = 6 + smokeOffset * 0.18;
+    ctx.fillStyle = `rgba(240, 243, 250, ${Math.max(0, smokeAlpha)})`;
     ctx.beginPath();
-    ctx.arc(seedX, seedY, 1 + (i % 2), 0, Math.PI * 2);
+    // 讓白煙順滑地往斜上方噴吐、變大散開
+    ctx.arc(trainX + 28 - smokeOffset * 0.7, trainY - 16 - smokeOffset * 0.5, sizeRadius, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
 
-  // 3. 繪製發光的巨大南十字星 (核心夢幻地標)
-  ctx.save();
-  const crossX = 240;
-  const crossY = 220;
-  
-  // 外圍強烈發光圈
-  let starGlow = ctx.createRadialGradient(crossX, crossY, 2, crossX, crossY, 70);
-  starGlow.addColorStop(0, "rgba(255, 255, 255, 0.9)");
-  starGlow.addColorStop(0.2, "rgba(0, 255, 204, 0.4)");
-  starGlow.addColorStop(0.6, "rgba(12, 51, 89, 0.2)");
-  starGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
-  ctx.fillStyle = starGlow;
-  ctx.beginPath(); ctx.arc(crossX, crossY, 75, 0, Math.PI * 2); ctx.fill();
-
-  // 繪製十字主幹
-  ctx.strokeStyle = "rgba(0, 255, 204, 0.35)";
-  ctx.lineWidth = 8;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(crossX, crossY - 50); ctx.lineTo(crossX, crossY + 50); // 縱軸
-  ctx.moveTo(crossX - 35, crossY - 10); ctx.lineTo(crossX + 35, crossY - 10); // 橫軸
-  ctx.stroke();
-
-  // 繪製南十字座四大耀眼星點
-  drawStar(ctx, crossX, crossY - 50, 6, "#ffffff", 12, "#ffcc00");      // 十字架一 (頂)
-  drawStar(ctx, crossX, crossY + 50, 8, "#ffffff", 18, "#00ffcc");      // 十字架二 (底，最亮)
-  drawStar(ctx, crossX - 35, crossY - 10, 7, "#ffffff", 15, "#ffcc00");  // 十字架三 (左)
-  drawStar(ctx, crossX + 35, crossY - 10, 5, "#ffffff", 10, "#ffcc00");  // 十字架四 (右)
-  drawStar(ctx, crossX + 12, crossY + 22, 3, "#ffcc00", 5, "#ff8800");   // 伴星 Epsilon
-  ctx.restore();
-
-  // 4. 繪製彩虹發光地平線與山陵
-  ctx.save();
-  // 遠山
-  ctx.fillStyle = "#091c33";
-  ctx.beginPath();
-  ctx.moveTo(-10, 430);
-  ctx.quadraticCurveTo(100, 390, 220, 420);
-  ctx.quadraticCurveTo(320, 440, 410, 380);
-  ctx.lineTo(410, 510); ctx.lineTo(-10, 510);
-  ctx.fill();
-
-  // 近山丘 (彩色粉紫邊)
-  let hillGrad = ctx.createLinearGradient(0, 400, 0, 500);
-  hillGrad.addColorStop(0, "#2c1c3d");
-  hillGrad.addColorStop(1, "#0a0514");
-  ctx.fillStyle = hillGrad;
-  ctx.beginPath();
-  ctx.moveTo(-10, 460);
-  ctx.quadraticCurveTo(150, 400, 300, 450);
-  ctx.quadraticCurveTo(350, 470, 410, 440);
-  ctx.lineTo(410, 510); ctx.lineTo(-10, 510);
-  ctx.fill();
-
-  // 邊緣流螢 (山脈上的光芒)
-  ctx.strokeStyle = "rgba(180, 100, 255, 0.4)";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(-10, 460);
-  ctx.quadraticCurveTo(150, 400, 300, 450);
-  ctx.quadraticCurveTo(350, 470, 410, 440);
-  ctx.stroke();
-  ctx.restore();
-
-  // 5. 繪製鐵道與奔馳的復古蒸汽火車
-  ctx.save();
-  // 鐵軌線
-  ctx.strokeStyle = "rgba(255,255,255,0.2)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(-10, 485);
-  ctx.quadraticCurveTo(120, 445, 250, 470);
-  ctx.stroke();
-
-  // 繪製藍色列車車身 (順著曲線前進)
-  const trainX = 90;
-  const trainY = 460;
-  ctx.fillStyle = "#0c335c"; // 經典藍
-  ctx.strokeStyle = "#ffcc00"; // 黃色框線
-  ctx.lineWidth = 1.5;
-  // 車頭
-  roundRect(ctx, trainX, trainY - 12, 35, 18, 4, true, true);
-  // 車窗與車輪
-  ctx.fillStyle = "#ffcc00";
-  ctx.fillRect(trainX + 18, trainY - 8, 8, 5); // 駕駛窗
-  ctx.fillStyle = "#111";
-  ctx.beginPath(); ctx.arc(trainX + 8, trainY + 8, 4, 0, Math.PI*2); ctx.arc(trainX + 26, trainY + 8, 4, 0, Math.PI*2); ctx.fill();
-
-  // 車廂
-  ctx.fillStyle = "#134275";
-  roundRect(ctx, trainX - 42, trainY - 8, 36, 14, 3, true, true);
-  ctx.fillStyle = "#ffd54f"; // 黃色發光車窗
-  ctx.fillRect(trainX - 36, trainY - 4, 6, 4);
-  ctx.fillRect(trainX - 26, trainY - 4, 6, 4);
-  ctx.fillRect(trainX - 16, trainY - 4, 6, 4);
-  
-  // 連接軸
-  ctx.strokeStyle = "#8da9c4"; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(trainX - 6, trainY + 2); ctx.lineTo(trainX, trainY + 2); ctx.stroke();
-
-  // 6. 冉冉升起的蒸汽火車煙霧 (動態漂移)
-  for (let j = 0; j < 3; j++) {
-    let smokeOffset = (time * 25 + j * 30) % 90;
-    let smokeAlpha = 0.5 - (smokeOffset / 90);
-    ctx.fillStyle = `rgba(230, 235, 245, ${smokeAlpha})`;
-    ctx.beginPath();
-    ctx.arc(trainX + 30 - smokeOffset * 0.6, trainY - 18 - smokeOffset * 0.4, 8 + smokeOffset * 0.15, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-
-  // 7. ⭐ 繪製發光大標題文字 ⭐
-  ctx.save();
-  ctx.shadowBlur = 15;
-  ctx.shadowColor = "#00ffcc";
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 22px Arial, Microsoft JhengHei";
-  ctx.textAlign = "center";
-  ctx.fillText("旅程終了！南十字星就在眼前！", 200, 75);
-  ctx.restore();
+  // 7. 霓虹發光大標題
+  ctx.save(); ctx.shadowBlur = 15; ctx.shadowColor = "#00ffcc"; ctx.fillStyle = "#ffffff"; ctx.font = "bold 22px Arial, Microsoft JhengHei"; ctx.textAlign = "center";
+  ctx.fillText("旅程終了！南十字星就在眼前！", 200, 75); ctx.restore();
 }
 
 // ============================================================================
