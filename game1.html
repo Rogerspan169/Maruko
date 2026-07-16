@@ -515,39 +515,73 @@ let lavaSpeed = 1.85;
 let gameOver3 = false;
 let gameWin3 = false;
 
+// ⭐ 修正版：100% 保證有解的隨機迷宮生成演算法 ⭐
 function generateMaze() {
+  // 1. 初始化所有格子為「空地」 (false)
   mazeWalls = Array(ROWS).fill().map(() => Array(COLS).fill(false));
   
+  // 2. 建立左右外圍邊界牆
   for (let r = 0; r < ROWS; r++) {
     mazeWalls[r][0] = true;
     mazeWalls[r][COLS - 1] = true;
   }
   
-  for (let r = 1; r < ROWS - 1; r++) {
-    const isEvenRow = r % 2 === 0;
+  // 3. 預先規劃一條「絕對通暢的黃金逃生路徑」
+  // 記錄每一排被選為黃金通道的直行 (Column) 索引
+  let guaranteedPath = Array(ROWS).fill(0);
+  
+  // 起點在最底部的中央附近
+  guaranteedPath[ROWS - 1] = 4; 
+  
+  for (let r = ROWS - 2; r >= 0; r--) {
+    let prevC = guaranteedPath[r + 1];
     
-    for (let c = 1; c < COLS - 1; c++) {
-      if (Math.random() < 0.38) { 
-        mazeWalls[r][c] = true;
-      }
-    }
+    // 限制下一步的橫向位移，防止路線跳躍太大（每次最多向左或向右移 2 格）
+    let minC = Math.max(1, prevC - 2);
+    let maxC = Math.min(COLS - 2, prevC + 2);
     
-    if (isEvenRow) {
-      mazeWalls[r][2] = false;
-      mazeWalls[r][3] = false;
-    } else {
-      mazeWalls[r][6] = false;
-      mazeWalls[r][7] = false;
-    }
-    
-    let randomPass = Math.floor(Math.random() * (COLS - 2)) + 1;
-    mazeWalls[r][randomPass] = false;
+    // 隨機選定這一排的黃金通道位置
+    let nextC = Math.floor(Math.random() * (maxC - minC + 1)) + minC;
+    guaranteedPath[r] = nextC;
   }
 
+  // 4. 開始填充牆壁，但避開這條「黃金路線」
+  for (let r = 1; r < ROWS - 1; r++) {
+    for (let c = 1; c < COLS - 1; c++) {
+      // 判斷這一格是不是在黃金逃生路徑上
+      let isOnGuaranteedPath = false;
+      
+      // 檢查是否是垂直通道
+      if (c === guaranteedPath[r]) {
+        isOnGuaranteedPath = true;
+      }
+      
+      // ⭐ 關鍵：除了垂直點，相鄰兩排之間的橫向連接通道也絕對不能放牆壁！
+      let pathCurrent = guaranteedPath[r];
+      let pathNext = guaranteedPath[r + 1];
+      let minPathX = Math.min(pathCurrent, pathNext);
+      let maxPathX = Math.max(pathCurrent, pathNext);
+      
+      if (c >= minPathX && c <= maxPathX) {
+        isOnGuaranteedPath = true;
+      }
+
+      // 如果不在保證路線上，則隨機放置牆壁
+      // 因為保證有解，我們將難度機率調高至 42% 讓分支迷宮更複雜好玩！
+      if (!isOnGuaranteedPath) {
+        if (Math.random() < 0.42) {
+          mazeWalls[r][c] = true;
+        }
+      }
+    }
+  }
+
+  // 5. 確保最底部起點周圍暢通
   for (let c = 1; c < COLS - 1; c++) {
     mazeWalls[ROWS - 1][c] = false;
     mazeWalls[ROWS - 2][c] = false;
   }
+  // 確保最頂部終點出口暢通
   for (let c = 1; c < COLS - 1; c++) {
     mazeWalls[1][c] = false;
     mazeWalls[2][c] = false;
