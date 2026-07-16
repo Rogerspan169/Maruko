@@ -199,7 +199,25 @@
     <button class="btn-next" id="btnRestart" style="display:none; background: #ffcc00; box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);">重新挑戰 🔄</button>
   </div>
 
+  <!-- ⭐ 新增：第三關規則提示彈窗 ⭐ -->
+<div class="pop-overlay" id="mazeRuleOverlay">
+  <div class="pop-box" style="border-color: #ff3366; box-shadow: 0 0 30px rgba(255, 51, 102, 0.3);">
+    <div class="pop-title" style="color: #ff3366;">🔥 終極關卡：逃離心宿二</div>
+    <div class="pop-text">
+      心宿二正發生超新星引力崩潰與膨脹！<br><br>
+      1. 透過【按住並拖曳】藍色量子光點往上逃生。<br>
+      2. 沿途迷宮高達 2400 像素，充滿死胡同與重力阻尼。<br>
+      3. 下方熾熱的等離子火海會不斷加速向上吞噬，一旦被觸碰即毀滅！
+    </div>
+    <button class="pop-btn" id="mazeRuleBtnConfirm" style="background: #ff3366; color: white;">啟動引擎逃生</button>
+  </div>
+</div>
+
 <script>
+// ⭐ 新增：第三關規則彈窗元素獲取
+const mazeRuleOverlay = document.getElementById("mazeRuleOverlay");
+const mazeRuleBtnConfirm = document.getElementById("mazeRuleBtnConfirm");
+let isPausedForMazeRule = false; // 控制第三關開始前的規則鎖
 // ============================================================================
 //                          第一關與第二關通用輔助
 // ============================================================================
@@ -580,7 +598,11 @@ function initStage3() {
   hud3.innerText = "按住並拖曳藍色光點往上逃！避開下方逼近的紅巨星等離子！";
   hud3.style.color = "#ffcc00";
   generateMaze();
-  tickStage3();
+  
+  // ⭐ 修改：先渲染首幀畫面，然後跳出規則彈窗並鎖定，不直接執行 tickStage3
+  renderStage3(); 
+  isPausedForMazeRule = true;
+  mazeRuleOverlay.style.display = "flex";
 }
 
 function resolveCollisions(oldX, oldY) {
@@ -611,6 +633,8 @@ function isColliding(x1, x2, y1, y2) {
 }
 
 function onStart3(e) {
+  if (gameOver3 || gameWin3 || isPausedForMazeRule) return; // ⭐ 新增 isPausedForMazeRule 判定
+  // ... 以下原本的拖曳邏輯不變
   if (gameOver3 || gameWin3) return;
   e.preventDefault();
   const coords = getCanvasCoords(e, canvasZ);
@@ -795,6 +819,14 @@ function drawEndingScene(ctx) {
 // ============================================================================
 //                          關卡流控制與重置
 // ============================================================================
+// ⭐ 新增：第三關規則彈窗確認按鈕監聽 ⭐
+mazeRuleBtnConfirm.addEventListener("click", () => {
+  mazeRuleOverlay.style.display = "none";
+  isPausedForMazeRule = false;
+  // 玩家準備好了，心宿二正式開始膨脹吞噬！
+  tickStage3(); 
+});
+
 document.getElementById("btnGoToStage2").addEventListener("click", () => {
   document.getElementById("stage1").classList.remove("active-stage");
   document.getElementById("stage2").classList.add("active-stage");
