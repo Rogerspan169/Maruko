@@ -881,15 +881,22 @@ document.getElementById("btnGoToStage3").addEventListener("click", () => {
   initStage3();
 });
 
+// ⭐ 修改：讓第三關重來時不用回第一關，而是直接就地滿血復活！
 document.getElementById("btnRestart").addEventListener("click", () => {
-  foundCount = 0; gameOver1 = false;
-  differences.forEach(d => d.found = false);
-  hud1.innerText = "尋找異象：0 / 4";
-  btnGoToStage2.style.display = "none";
-  
-  document.getElementById("stage3").classList.remove("active-stage");
-  document.getElementById("stage1").classList.add("active-stage");
-  renderStage1();
+  if (gameWin3) {
+    // 【狀況 A】如果玩家是通關全破了，點擊「重啟宇宙星路」才真正回第一關完整重來
+    foundCount = 0; gameOver1 = false;
+    differences.forEach(d => d.found = false);
+    hud1.innerText = "尋找異象：0 / 4";
+    document.getElementById("btnGoToStage2").style.display = "none";
+    
+    document.getElementById("stage3").classList.remove("active-stage");
+    document.getElementById("stage1").classList.add("active-stage");
+    renderStage1();
+  } else {
+    // 【狀況 B】如果是被心宿二吞噬失敗，直接就地重新生成當前第三關，不回第一關！
+    initStage3();
+  }
 });
 
 // 找碴浮動文字動畫循環
