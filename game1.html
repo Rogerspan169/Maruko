@@ -467,10 +467,30 @@ function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
   if (fill) ctx.fill(); if (stroke) ctx.stroke();
 }
 
+// ⭐ 修正後的手機/電腦雙適配座標換算引擎
 function getCanvasCoords(e, canvas) {
-  const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  
+  let clientX = e.clientX;
+  let clientY = e.clientY;
+  
+  // 如果是手機觸控事件
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } 
+  // ⭐ 關鍵修復：如果是放開手指事件(touchend)，必須讀取 changedTouches
+  else if (e.changedTouches && e.changedTouches.length > 0) {
+    clientX = e.changedTouches[0].clientX;
+    clientY = e.changedTouches[0].clientY;
+  }
+  
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
 }
 
 function onStart2(e) {
