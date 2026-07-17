@@ -504,9 +504,31 @@ function onEnd2(e) {
   }
 }
 
-canvasM.addEventListener("mousedown", onStart2); canvasM.addEventListener("mousemove", onMove2); window.addEventListener("mouseup", onEnd2);
-canvasM.addEventListener("touchstart", onStart2, { passive: false }); canvasM.addEventListener("touchmove", onMove2, { passive: false }); window.addEventListener("touchend", onEnd2);
+// ⭐ 替換成以下「手機觸控優化版」監聽器：
 
+// 【PC 滑鼠事件保持不變】
+canvasM.addEventListener("mousedown", onStart2);
+canvasM.addEventListener("mousemove", onMove2);
+window.addEventListener("mouseup", onEnd2);
+
+// 【手機觸控事件：全面升級與全面防禦】
+// 1. 按下觸摸：強制使用被動鎖，允許阻止網頁捲動
+canvasM.addEventListener("touchstart", function(e) {
+  e.preventDefault(); // 阻止手機瀏覽器預設的網頁跳動行為
+  onStart2(e);
+}, { passive: false });
+
+// 2. 觸摸拖曳：強制鎖定畫面，讓手指拉出的雷射軌道滑順無無死角
+canvasM.addEventListener("touchmove", function(e) {
+  e.preventDefault(); // 鎖定螢幕，不讓網頁跟著手指上下飄移
+  onMove2(e);
+}, { passive: false });
+
+// 3. 放開手指：改為精準綁定在畫布上，確保手機瀏覽器 100% 觸發過關判定
+canvasM.addEventListener("touchend", function(e) {
+  onEnd2(e);
+});
+  
 // ============================================================================
 //                    第三關：直向卷軸迷宮 (保證連通極限版)
 // ============================================================================
