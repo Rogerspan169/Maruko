@@ -243,21 +243,34 @@ for (let i = 0; i < 150; i++) {
   backgroundStars.push({ x: Math.random() * 400, y: Math.random() * 500, r: Math.random() * 1.3, alpha: Math.random() * 0.6 + 0.2 });
 }
 
-// 隨機座標產生器
-const randY1 = Math.random() * 80 + 40; 
-const randX1 = Math.random() * 80 + (Math.random() > 0.5 ? 30 : 290);
-const randX2 = Math.random() * 320 + 40; const randY2 = Math.random() * 50 + 260;
-const randX3 = Math.random() * 120 + 140; const randY3 = Math.random() * 60 + 50;
+// ⭐ 升級：星空事件「安全距離保證鎖」演算法
+function getSafeRandomCoord(minX, maxX, minY, maxY, minDistance) {
+  let x, y, dist;
+  let attempts = 0;
+  do {
+    x = Math.random() * (maxX - minX) + minX;
+    y = Math.random() * (maxY - minY) + minY;
+    // 計算該點與中央十字星 (200, 180) 的直線距離
+    dist = Math.hypot(x - 200, y - 180);
+    attempts++;
+  } while (dist < minDistance && attempts < 100); // 如果太近就重新抽籤，最多嘗試100次防死鎖
+  return { x, y };
+}
 
-// 7 種超豐富找碴事件池
+// 產生四周安全地帶的異象座標 (保證離中央十字至少 110 像素遠)
+const evtCoord1 = getSafeRandomCoord(30, 370, 40, 440, 110);
+const evtCoord2 = getSafeRandomCoord(30, 370, 40, 440, 110);
+const evtCoord3 = getSafeRandomCoord(30, 370, 40, 440, 110);
+
+// 7 種超豐富找碴事件池 (套用安全座標)
 const possibleEvents = [
   { name: "望遠鏡種類不同", xl: 200, yl: 450, xr: 200, yr: 450, radius: 40, type: "telescope" },
-  { name: "流星劃過天空", xl: randX1, yl: randY1, xr: randX1, yr: randY1, radius: 25, type: "meteor" },
-  { name: "星色轉變異象", xl: randX2, yl: randY2, xr: randX2, yr: randY2, radius: 20, type: "color_change" },
-  { name: "未知新星誕生", xl: randX1 > 200 ? randX1 - 120 : randX1 + 120, yl: randY2 - 30, xr: randX1 > 200 ? randX1 - 120 : randX1 + 120, yr: randY2 - 30, radius: 20, type: "nova" },
-  { name: "星雲裂隙反應", xl: randX3, yl: randY3, xr: randX3, yr: randY3, radius: 25, type: "nebula_ring" },
-  { name: "極光離子微粒", xl: 50, yl: 220, xr: 50, yr: 220, radius: 25, type: "aurora_glow" },
-  { name: "紅巨星先兆爆發", xl: 350, yl: 100, xr: 350, yr: 100, radius: 30, type: "supernova_flash" }
+  { name: "流星劃過天空", xl: evtCoord1.x, yl: evtCoord1.y, xr: evtCoord1.x, yr: evtCoord1.y, radius: 25, type: "meteor" },
+  { name: "星色轉變異象", xl: evtCoord2.x, yl: evtCoord2.y, xr: evtCoord2.x, yr: evtCoord2.y, radius: 20, type: "color_change" },
+  { name: "未知新星誕生", xl: evtCoord3.x, yl: evtCoord3.y, xr: evtCoord3.x, yr: evtCoord3.y, radius: 20, type: "nova" },
+  { name: "星雲裂隙反應", xl: evtCoord1.x, yl: evtCoord2.y, xr: evtCoord1.x, yr: evtCoord2.y, radius: 25, type: "nebula_ring" },
+  { name: "極光離子微粒", xl: 45, yl: 220, xr: 45, yr: 220, radius: 25, type: "aurora_glow" }, // 左邊緣安全
+  { name: "紅巨星先兆爆發", xl: 355, yl: 100, xr: 355, yr: 100, radius: 30, type: "supernova_flash" } // 右上角安全
 ];
 
 const selectedRandomEvents = [...possibleEvents].sort(() => Math.random() - 0.5).slice(0, 3);
@@ -724,20 +737,23 @@ function tickStage3() {
 
   lavaY -= lavaSpeed;
 
+  // 3. 判斷勝負條件
   if (player.y >= lavaY - player.radius) {
     gameOver3 = true;
-    hud3.innerText = "💥 你的太空船被膨脹中的心宿二吞噬了！"; hud3.style.color = "#ff3366";
+    hud3.innerText = "💥 你的太空船被膨脹中的心宿二吞噬了！";
+    hud3.style.color = "#ff3366";
     btnRestart.style.display = "block";
     renderStage3();
   }
-  else if (player.y < 45) { 
+  // ⭐ 升級：精準圓形星門範圍判定（中心為 200, 40）
+  else if (Math.hypot(player.x - 200, player.y - 40) < 22) { 
     gameWin3 = true;
-    // ⭐ 新增：通關一瞬間徹底刪除/隱藏最上方的標題文字 ⭐
-    mazeTitle.style.display = "none";
+    mazeTitle.style.display = "none"; // 徹底隱藏最上方的標題文字
     hud3.innerText = ""; 
-    btnRestart.innerText = "重啟宇宙星路 🔄"; btnRestart.style.display = "block";
+    btnRestart.innerText = "重啟宇宙星路 🔄"; 
+    btnRestart.style.display = "block";
     renderStage3();
-    requestAnimationFrame(tickStage3); // 重新將動態環喚醒
+    requestAnimationFrame(tickStage3); // 喚醒最後的銀河列車動態效果
   } else {
     renderStage3();
     requestAnimationFrame(tickStage3);
